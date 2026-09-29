@@ -1,0 +1,58 @@
+/* Range Slider a linea sottile con cursore rettangolare nero */
+.custom-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 2px;
+    background: #cbd5e1;
+    border-radius: 9999px;
+    outline: none;
+    transition: background 0.15s ease-in-out;
+}
+
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: #111827;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s ease;
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.custom-slider::-moz-range-thumb {
+    width: 16px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: #111827;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Rimuove freccette native dagli input di tipo number per un look più pulito */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Transizione fluida icone matita e cestino */
+button svg {
+    transition: color 0.15s ease, transform 0.1s ease;
+}
+
+button:hover svg {
+    transform: scale(1.15);
+}

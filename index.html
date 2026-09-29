@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>saveMoney - Gestione Budget</title>
+
+    <!-- Tailwind CSS per il layout reattivo mobile -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS per esportare il foglio Excel (.xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Foglio di stile personalizzato -->
+    <link rel="stylesheet" href="style.css">
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="saveMoney">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrato!'))
+                    .catch(err => console.log('Errore SW:', err));
+            });
+        }
+    </script>
+</head>
+
+<body class="bg-[#f8f9fa] text-gray-800 antialiased min-h-screen p-4 sm:p-6 pb-20">
+
+    <div class="max-w-xl mx-auto space-y-5">
+
+        <!-- ======================================================= -->
+        <!-- 1. SCHERMATA LOGIN PROFILO DINAMICO CON AGGIUNTA UTENTE -->
+        <!-- ======================================================= -->
+        <div id="view-auth"
+            class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center space-y-6 mt-6">
+            <img src="logo.png" alt="saveMoney Logo" class="h-28 mx-auto object-contain drop-shadow-sm">
+
+            <div>
+                <h1 class="text-xl font-bold text-gray-800">Benvenuta in saveMoney</h1>
+                <p class="text-xs text-gray-500 mt-1">Seleziona il tuo profilo per accedere ai tuoi fogli</p>
+            </div>
+
+            <!-- Questo contenitore viene popolato da app.js con Martina, Marika e il pulsante + Aggiungi -->
+            <div id="auth-users-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 2. SCHERMATA INSERIMENTO PIN               -->
+        <!-- ========================================== -->
+        <div id="view-pin"
+            class="hidden bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center space-y-6 mt-6">
+            <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold shadow-xs"
+                id="pin-user-avatar">
+                M
+            </div>
+
+            <div>
+                <h2 class="text-lg font-bold text-gray-800" id="pin-user-title">Accesso Martina</h2>
+                <p class="text-xs text-gray-500 mt-1">Inserisci il PIN a 4 cifre per continuare</p>
+            </div>
+
+            <!-- Indicatori 4 Pallini PIN -->
+            <div class="flex items-center justify-center gap-3 py-2">
+                <div class="w-3.5 h-3.5 rounded-full border-2 border-gray-300 transition-all" id="pin-dot-0"></div>
+                <div class="w-3.5 h-3.5 rounded-full border-2 border-gray-300 transition-all" id="pin-dot-1"></div>
+                <div class="w-3.5 h-3.5 rounded-full border-2 border-gray-300 transition-all" id="pin-dot-2"></div>
+                <div class="w-3.5 h-3.5 rounded-full border-2 border-gray-300 transition-all" id="pin-dot-3"></div>
+            </div>
+
+            <p id="pin-error-msg" class="text-xs text-red-500 font-medium hidden">PIN non corretto. Riprova.</p>
+
+            <!-- Tastierino Numerico -->
+            <div class="grid grid-cols-3 gap-3 max-w-[240px] mx-auto pt-2">
+                <button onclick="pressPinDigit('1')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">1</button>
+                <button onclick="pressPinDigit('2')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">2</button>
+                <button onclick="pressPinDigit('3')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">3</button>
+                <button onclick="pressPinDigit('4')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">4</button>
+                <button onclick="pressPinDigit('5')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">5</button>
+                <button onclick="pressPinDigit('6')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">6</button>
+                <button onclick="pressPinDigit('7')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">7</button>
+                <button onclick="pressPinDigit('8')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">8</button>
+                <button onclick="pressPinDigit('9')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">9</button>
+                <button onclick="cancelPinAuth()"
+                    class="py-3 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-2xl transition">Indietro</button>
+                <button onclick="pressPinDigit('0')"
+                    class="py-3 bg-gray-50 hover:bg-gray-100 rounded-2xl text-lg font-semibold text-gray-700 transition">0</button>
+                <button onclick="deletePinDigit()"
+                    class="py-3 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-2xl transition flex items-center justify-center">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414-6.414a2 2 0 011.414-.586H19a2 2 0 012 2v10a2 2 0 01-2 2h-9.172a2 2 0 01-1.414-.586L3 12z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- 3. SCHERMATA ELENCO FOGLI (DASHBOARD)                   -->
+        <!-- ======================================================= -->
+        <div id="view-dashboard" class="hidden space-y-5">
+            <!-- Header con Logo Piccolo e Cambio Profilo -->
+            <header class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="logo.png" alt="saveMoney Logo" class="h-10 object-contain">
+                    <div>
+                        <div class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Profilo attivo
+                        </div>
+                        <div class="text-sm font-bold text-gray-800" id="dash-user-name">Martina</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="logoutToAuth()"
+                        class="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                        Cambia
+                    </button>
+                    <button onclick="openNewSheetModal()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                        Nuovo Foglio
+                    </button>
+                </div>
+            </header>
+
+            <!-- Titolo Sezione Fogli -->
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-sm font-bold text-gray-700">I Tuoi Fogli Spese</h2>
+                <span class="text-xs text-gray-400" id="dash-sheet-count">0 fogli</span>
+            </div>
+
+            <!-- Elenco card fogli -->
+            <div id="dash-sheets-list" class="space-y-3">
+                <!-- Generato dinamicamente via JS -->
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- 4. SCHERMATA DETTAGLIO FOGLIO MESE ATTIVO               -->
+        <!-- ======================================================= -->
+        <main id="view-sheet-detail" class="hidden space-y-5">
+
+            <!-- Barra superiore con Back e Azioni -->
+            <div class="flex items-center justify-between bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+                <button onclick="backToDashboard()"
+                    class="text-xs font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    I miei fogli
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="exportToExcel()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Excel
+                    </button>
+                    <button onclick="deleteCurrentSheet()"
+                        class="text-xs text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition" title="Elimina foglio">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scheda Grafica del Foglio -->
+            <div class="bg-white rounded-2xl p-5 sm:p-7 shadow-sm border border-gray-100 space-y-6">
+
+                <!-- Info testata foglio -->
+                <div
+                    class="flex items-center justify-between pb-3 border-b border-gray-100 text-xs sm:text-sm text-gray-500">
+                    <div>
+                        <span class="font-bold text-gray-800" id="current-sheet-title">Foglio Mese</span>
+                        <span class="mx-1">•</span>
+                        <span>Accredito: <strong class="text-gray-700"
+                                id="current-sheet-date">--/--/----</strong></span>
+                    </div>
+                </div>
+
+                <!-- 3 Statistiche Hero in alto -->
+                <div class="grid grid-cols-3 gap-2 text-center py-1">
+                    <div>
+                        <div class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight">Totale uscite
+                            pianificate</div>
+                        <div class="text-lg sm:text-2xl font-bold text-gray-800 mt-1" id="stat-total-expenses">€0</div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight">Risparmio netto
+                            rimanente</div>
+                        <div class="text-lg sm:text-2xl font-bold text-emerald-600 mt-1" id="stat-net-savings">€0</div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] sm:text-xs text-gray-500 font-medium leading-tight">Percentuale
+                            risparmio</div>
+                        <div class="text-lg sm:text-2xl font-bold text-emerald-600 mt-1" id="stat-savings-ratio">0%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campo Stipendio / Budget Residuo -->
+                <div class="space-y-1.5">
+                    <label for="input-income" class="block text-xs sm:text-sm font-medium text-gray-700">
+                        Stipendio / budget residuo disponibile
+                    </label>
+                    <div class="relative flex items-center">
+                        <span class="absolute left-4 text-gray-600 font-semibold text-sm sm:text-base">€</span>
+                        <input type="number" id="input-income" oninput="handleIncomeChange(this.value)"
+                            class="w-full bg-[#f1f3f4] text-gray-800 font-semibold text-sm sm:text-base rounded-full pl-9 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                            placeholder="0">
+                    </div>
+                </div>
+
+                <!-- Ripartizione Voci & Barra Progresso Multicolore -->
+                <div class="space-y-2 pt-2">
+                    <div class="text-sm sm:text-base font-semibold text-gray-800">Ripartizione voci del ciclo</div>
+                    <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
+                        <div id="bar-segment-ricorrenti" class="h-full bg-[#2563eb] transition-all duration-300"
+                            style="width: 0%;"></div>
+                        <div id="bar-segment-spot" class="h-full bg-[#22c55e] transition-all duration-300"
+                            style="width: 0%;"></div>
+                        <div id="bar-segment-variabili" class="h-full bg-[#eab308] transition-all duration-300"
+                            style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Sezioni Accordion Categorie -->
+                <div class="space-y-5 pt-1" id="categories-container">
+                    <!-- Renderizzato via JS -->
+                </div>
+
+                <!-- Nota in corsivo -->
+                <p class="text-[11px] sm:text-xs italic text-gray-500 pt-4 border-t border-gray-100 leading-relaxed">
+                    Il surplus visualizzato è la cifra esatta che andrà a risparmio.
+                </p>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- MODALE CREAZIONE NUOVO FOGLIO (TUTTI E 3 I CAMPI OBBLIGATORI) -->
+    <div id="modal-new-sheet"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800">Crea Nuovo Foglio Mese</h3>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">
+                        Nome del foglio / Etichetta <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="modal-sheet-name" placeholder="Es. Ottobre, Novembre..."
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">
+                        Data accredito stipendio <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="modal-sheet-date"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">
+                        Stipendio iniziale accreditato (€) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="modal-sheet-income" placeholder="Es. 1400" min="1" step="any"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        required>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button onclick="closeNewSheetModal()"
+                    class="px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
+                <button onclick="confirmCreateNewSheet()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm">Crea
+                    Foglio</button>
+            </div>
+        </div>
+    </div>
+    <!-- MODALE MODIFICA FOGLIO ESISTENTE -->
+    <div id="modal-edit-sheet"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800">Modifica Dati Foglio</h3>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">
+                        Nome del foglio <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="edit-sheet-name"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">
+                        Data accredito <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="edit-sheet-date"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">
+                        Stipendio iniziale (€) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="edit-sheet-income" min="1" step="any"
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button onclick="closeEditSheetModal()"
+                    class="px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
+                <button onclick="confirmEditSheet()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm">Salva</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
