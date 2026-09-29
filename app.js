@@ -659,12 +659,32 @@ function confirmCreateNewSheet() {
 }
 
 function deleteCurrentSheet() {
-    const activeSheet = getActiveSheet();
-    if (!activeSheet) return;
-    if (!confirm(`Sei sicura di voler eliminare il foglio "${activeSheet.name}"?`)) return;
+    const modal = document.getElementById("modal-delete-sheet");
+    if (modal) {
+        modal.classList.remove("hidden");
+    } else {
+        // Fallback nel caso la modale non sia caricata
+        executeDeleteCurrentSheet();
+    }
+}
 
+function closeDeleteSheetModal() {
+    const modal = document.getElementById("modal-delete-sheet");
+    if (modal) modal.classList.add("hidden");
+}
+
+function executeDeleteCurrentSheet() {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) {
+        closeDeleteSheetModal();
+        return;
+    }
+
+    // Rimuove il foglio dall'utente attivo
     state.data[currentUser].sheets = state.data[currentUser].sheets.filter(s => s.id !== activeSheet.id);
     saveState();
+
+    closeDeleteSheetModal();
     backToDashboard();
 }
 
