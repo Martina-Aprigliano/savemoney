@@ -1,3 +1,12 @@
+// --- CONFIGURAZIONE SUPABASE ---
+const SUPABASE_URL = "https://qsankatsfbunrqnejeeg.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_zj0gQGLvNmNOMrDdAgwqsQ_PhZAb4nD";
+
+let supabaseClient = null;
+if (window.supabase) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
 // --- STATO GLOBALE DELL'APPLICAZIONE ---
 const STORAGE_KEY = "savemoney_app_v2";
 
@@ -49,7 +58,9 @@ const DEFAULT_CATEGORIES = [
     }
 ];
 
-function initApp() {
+// --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
+async function initApp() {
+    // 1. Prima carica subito i dati locali se presenti (nessun ritardo grafico)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
         try {
@@ -63,14 +74,59 @@ function initApp() {
                 };
             }
         } catch (e) {
-            console.error("Errore lettura dati:", e);
+            console.error("Errore lettura dati locali:", e);
         }
     }
     showView("auth");
+
+    // 2. Scarica i dati aggiornati da Supabase
+    if (supabaseClient) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('app_data')
+                .select('content')
+                .eq('id', 'main_state')
+                .maybeSingle();
+
+            if (data && data.content && data.content.users && data.content.data) {
+                state = data.content;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                if (currentUser) {
+                    if (currentSheetId) renderSheetDetail();
+                    else renderDashboard();
+                } else {
+                    renderAuthUsers();
+                }
+            } else if (!data) {
+                // Se la tabella è ancora vuota, invia lo stato iniziale su Supabase
+                await supabaseClient
+                    .from('app_data')
+                    .upsert({ id: 'main_state', content: state, updated_at: new Date() });
+            }
+        } catch (err) {
+            console.warn("Impossibile contattare Supabase:", err);
+        }
+    }
 }
 
-function saveState() {
+async function saveState() {
+    // Salva sempre in localStorage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    // Salva su Supabase per sincronizzare tutti i dispositivi
+    if (supabaseClient) {
+        try {
+            await supabaseClient
+                .from('app_data')
+                .upsert({
+                    id: 'main_state',
+                    content: state,
+                    updated_at: new Date()
+                });
+        } catch (err) {
+            console.error("Errore sincronizzazione Supabase:", err);
+        }
+    }
 }
 
 function isValidName(name) {
@@ -187,7 +243,6 @@ function editUserProfile(userName, event) {
     event.stopPropagation();
     const userData = state.data[userName] || {};
 
-    // Se ha già un PIN, chiede verifica prima di modificare
     if (userData.pin) {
         const checkPin = prompt(`Inserisci il PIN attuale di ${userName} per procedere:`);
         if (checkPin !== userData.pin) {
@@ -258,7 +313,6 @@ function requestPinAuth(userName) {
     pendingUserForPin = userName;
     const userData = state.data[userName] || {};
 
-    // Se è un profilo di default e non ha ancora un PIN, lo imposta subito
     if (!userData.pin) {
         const initialPin = prompt(`Benvenuta ${userName}! Imposta un PIN a 4 cifre per proteggere i tuoi fogli:`);
         if (!initialPin || !isValidPin(initialPin)) {
@@ -387,7 +441,7 @@ function renderDashboard() {
       <div class="flex items-center gap-2">
         <button onclick="openEditSheetModal('${sheet.id}')" class="text-gray-400 hover:text-blue-600 transition p-1.5 rounded-lg hover:bg-blue-50" title="Modifica dati foglio">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
           </svg>
         </button>
 
@@ -534,7 +588,7 @@ function renderCategories(activeSheet, totalExpenses) {
           <div class="flex items-center gap-2">
             <button onclick="renameItem(${catIndex}, ${itemIndex})" class="text-gray-400 hover:text-blue-600 transition p-0.5 rounded" title="Modifica nome">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
               </svg>
             </button>
             <button onclick="deleteItem(${catIndex}, ${itemIndex})" class="text-gray-400 hover:text-red-600 transition p-0.5 rounded" title="Elimina voce">
@@ -663,7 +717,6 @@ function deleteCurrentSheet() {
     if (modal) {
         modal.classList.remove("hidden");
     } else {
-        // Fallback nel caso la modale non sia caricata
         executeDeleteCurrentSheet();
     }
 }
@@ -680,7 +733,6 @@ function executeDeleteCurrentSheet() {
         return;
     }
 
-    // Rimuove il foglio dall'utente attivo
     state.data[currentUser].sheets = state.data[currentUser].sheets.filter(s => s.id !== activeSheet.id);
     saveState();
 
