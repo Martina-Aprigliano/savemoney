@@ -460,10 +460,14 @@ function openEditSheetModal(sheetId) {
     if (!sheet) return;
 
     editingSheetId = sheetId;
-    document.getElementById("modal-edit-sheet").classList.remove("hidden");
 
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById("edit-sheet-date");
+    dateInput.max = today; // Disabilita i giorni futuri nel calendario
+    dateInput.value = sheet.salaryDate;
+
+    document.getElementById("modal-edit-sheet").classList.remove("hidden");
     document.getElementById("edit-sheet-name").value = sheet.name;
-    document.getElementById("edit-sheet-date").value = sheet.salaryDate;
     document.getElementById("edit-sheet-income").value = sheet.income;
 }
 
@@ -475,6 +479,11 @@ function closeEditSheetModal() {
 function confirmEditSheet() {
     const nameInput = document.getElementById("edit-sheet-name").value.trim();
     const dateInput = document.getElementById("edit-sheet-date").value;
+    const today = new Date().toISOString().split('T')[0];
+    if (dateInput > today) {
+        alert("Non puoi selezionare una data futura per l'accredito.");
+        return;
+    }
     const incomeInput = document.getElementById("edit-sheet-income").value.trim();
 
     if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
@@ -673,9 +682,13 @@ function toggleCategoryCollapse(catIndex) {
 }
 
 function openNewSheetModal() {
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById("modal-sheet-date");
+    dateInput.max = today; // Disabilita i giorni futuri nel calendario
+    dateInput.value = today; // Preimposta la data di oggi come suggerimento
+
     document.getElementById("modal-new-sheet").classList.remove("hidden");
     document.getElementById("modal-sheet-name").value = "";
-    document.getElementById("modal-sheet-date").value = "";
     document.getElementById("modal-sheet-income").value = "";
 }
 
@@ -686,6 +699,11 @@ function closeNewSheetModal() {
 function confirmCreateNewSheet() {
     const nameInput = document.getElementById("modal-sheet-name").value.trim();
     const dateInput = document.getElementById("modal-sheet-date").value;
+    const today = new Date().toISOString().split('T')[0];
+    if (dateInput > today) {
+        alert("Non puoi selezionare una data futura per l'accredito.");
+        return;
+    }
     const incomeInput = document.getElementById("modal-sheet-income").value.trim();
 
     if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
