@@ -58,9 +58,34 @@ const DEFAULT_CATEGORIES = [
     }
 ];
 
+// --- HELPER DATE: CALCOLO E BLOCCO DATA MASSIMA (OGGI LOCALE) ---
+function getTodayDateString() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function lockDateInputsToToday() {
+    const today = getTodayDateString();
+    ['modal-sheet-date', 'edit-sheet-date'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.setAttribute('max', today);
+            input.max = today;
+            // Blocca la digitazione manuale da tastiera: obbliga a usare il picker calendario
+            input.addEventListener('keydown', (e) => e.preventDefault());
+        }
+    });
+}
+
 // --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
 async function initApp() {
-    // 1. Prima carica subito i dati locali se presenti (nessun ritardo grafico)
+    // 1. Blocca subito i limiti del calendario alla data di oggi
+    lockDateInputsToToday();
+
+    // 2. Carica subito i dati locali se presenti (nessun ritardo grafico)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
         try {
@@ -79,7 +104,7 @@ async function initApp() {
     }
     showView("auth");
 
-    // 2. Scarica i dati aggiornati da Supabase
+    // 3. Scarica i dati aggiornati da Supabase
     if (supabaseClient) {
         try {
             const { data, error } = await supabaseClient
@@ -98,7 +123,6 @@ async function initApp() {
                     renderAuthUsers();
                 }
             } else if (!data) {
-                // Se la tabella è ancora vuota, invia lo stato iniziale su Supabase
                 await supabaseClient
                     .from('app_data')
                     .upsert({ id: 'main_state', content: state, updated_at: new Date() });
@@ -110,10 +134,8 @@ async function initApp() {
 }
 
 async function saveState() {
-    // Salva sempre in localStorage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-    // Salva su Supabase per sincronizzare tutti i dispositivi
     if (supabaseClient) {
         try {
             await supabaseClient
@@ -176,7 +198,7 @@ function renderAuthUsers() {
       <div class="absolute top-2 right-2 flex items-center gap-1 z-10">
         <button onclick="editUserProfile('${userName}', event)" class="p-1 text-gray-400 hover:text-blue-600 rounded transition" title="Modifica nome o PIN">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
           </svg>
         </button>
         <button onclick="deleteUser('${userName}', event)" class="p-1 text-gray-400 hover:text-red-600 rounded transition" title="Elimina profilo">
@@ -455,16 +477,71 @@ function renderDashboard() {
     });
 }
 
+function openNewSheetModal() {
+    const today = getTodayDateString();
+    const dateInput = document.getElementById("modal-sheet-date");
+    if (dateInput) {
+        dateInput.setAttribute('max', today);
+        dateInput.max = today;
+        dateInput.value = today;
+    }
+
+    document.getElementById("modal-new-sheet").classList.remove("hidden");
+    document.getElementById("modal-sheet-name").value = "";
+    document.getElementById("modal-sheet-income").value = "";
+}
+
+function closeNewSheetModal() {
+    document.getElementById("modal-new-sheet").classList.add("hidden");
+}
+
+function confirmCreateNewSheet() {
+    const nameInput = document.getElementById("modal-sheet-name").value.trim();
+    const dateInput = document.getElementById("modal-sheet-date").value;
+    const incomeInput = document.getElementById("modal-sheet-income").value.trim();
+    const today = getTodayDateString();
+
+    if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
+    if (!dateInput) { alert("Seleziona la data."); return; }
+    if (dateInput > today) {
+        alert("Non puoi selezionare una data futura per l'accredito.");
+        return;
+    }
+    if (!incomeInput || Number(incomeInput) <= 0) { alert("Inserisci lo stipendio."); return; }
+
+    const initialCategories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)).map(category => {
+        category.items = category.items.map(item => ({ ...item, value: 0 }));
+        return category;
+    });
+
+    const newSheet = {
+        id: "sheet_" + Date.now(),
+        name: nameInput,
+        salaryDate: dateInput,
+        income: Number(incomeInput),
+        categories: initialCategories
+    };
+
+    state.data[currentUser].sheets.unshift(newSheet);
+    currentSheetId = newSheet.id;
+    saveState();
+    closeNewSheetModal();
+    showView("sheet-detail");
+}
+
 function openEditSheetModal(sheetId) {
     const sheet = state.data[currentUser].sheets.find(s => s.id === sheetId);
     if (!sheet) return;
 
     editingSheetId = sheetId;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const dateInput = document.getElementById("edit-sheet-date");
-    dateInput.max = today; // Disabilita i giorni futuri nel calendario
-    dateInput.value = sheet.salaryDate;
+    if (dateInput) {
+        dateInput.setAttribute('max', today);
+        dateInput.max = today;
+        dateInput.value = sheet.salaryDate;
+    }
 
     document.getElementById("modal-edit-sheet").classList.remove("hidden");
     document.getElementById("edit-sheet-name").value = sheet.name;
@@ -479,15 +556,15 @@ function closeEditSheetModal() {
 function confirmEditSheet() {
     const nameInput = document.getElementById("edit-sheet-name").value.trim();
     const dateInput = document.getElementById("edit-sheet-date").value;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
+
+    if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
+    if (!dateInput) { alert("Seleziona la data."); return; }
     if (dateInput > today) {
         alert("Non puoi selezionare una data futura per l'accredito.");
         return;
     }
     const incomeInput = document.getElementById("edit-sheet-income").value.trim();
-
-    if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
-    if (!dateInput) { alert("Seleziona la data."); return; }
     if (!incomeInput || Number(incomeInput) <= 0) { alert("Inserisci lo stipendio."); return; }
 
     const sheet = state.data[currentUser].sheets.find(s => s.id === editingSheetId);
@@ -679,55 +756,6 @@ function toggleCategoryCollapse(catIndex) {
     if (!activeSheet) return;
     activeSheet.categories[catIndex].collapsed = !activeSheet.categories[catIndex].collapsed;
     renderSheetDetail();
-}
-
-function openNewSheetModal() {
-    const today = new Date().toISOString().split('T')[0];
-    const dateInput = document.getElementById("modal-sheet-date");
-    dateInput.max = today; // Disabilita i giorni futuri nel calendario
-    dateInput.value = today; // Preimposta la data di oggi come suggerimento
-
-    document.getElementById("modal-new-sheet").classList.remove("hidden");
-    document.getElementById("modal-sheet-name").value = "";
-    document.getElementById("modal-sheet-income").value = "";
-}
-
-function closeNewSheetModal() {
-    document.getElementById("modal-new-sheet").classList.add("hidden");
-}
-
-function confirmCreateNewSheet() {
-    const nameInput = document.getElementById("modal-sheet-name").value.trim();
-    const dateInput = document.getElementById("modal-sheet-date").value;
-    const today = new Date().toISOString().split('T')[0];
-    if (dateInput > today) {
-        alert("Non puoi selezionare una data futura per l'accredito.");
-        return;
-    }
-    const incomeInput = document.getElementById("modal-sheet-income").value.trim();
-
-    if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
-    if (!dateInput) { alert("Seleziona la data."); return; }
-    if (!incomeInput || Number(incomeInput) <= 0) { alert("Inserisci lo stipendio."); return; }
-
-    const initialCategories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)).map(category => {
-        category.items = category.items.map(item => ({ ...item, value: 0 }));
-        return category;
-    });
-
-    const newSheet = {
-        id: "sheet_" + Date.now(),
-        name: nameInput,
-        salaryDate: dateInput,
-        income: Number(incomeInput),
-        categories: initialCategories
-    };
-
-    state.data[currentUser].sheets.unshift(newSheet);
-    currentSheetId = newSheet.id;
-    saveState();
-    closeNewSheetModal();
-    showView("sheet-detail");
 }
 
 function deleteCurrentSheet() {
