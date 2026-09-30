@@ -21,6 +21,13 @@ let enteredPin = "";
 // Callback per conferma modale data duplicata
 let pendingDuplicateAction = null;
 
+// Gestione Modali Voci
+let pendingActionItem = null;
+
+// Istanze Flatpickr
+let fpCreateInstance = null;
+let fpEditInstance = null;
+
 let state = {
     users: ["Martina", "Marika"],
     data: {
@@ -61,7 +68,7 @@ const DEFAULT_CATEGORIES = [
     }
 ];
 
-// --- HELPER DATE: CALCOLO E BLOCCO DATA MASSIMA (OGGI LOCALE) ---
+// --- HELPER DATE: CALCOLO E FORMATTAZIONE ---
 function getTodayDateString() {
     const now = new Date();
     const year = now.getFullYear();
@@ -70,19 +77,6 @@ function getTodayDateString() {
     return `${year}-${month}-${day}`;
 }
 
-function lockDateInputsToToday() {
-    const today = getTodayDateString();
-    ['modal-sheet-date', 'edit-sheet-date'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.setAttribute('max', today);
-            input.max = today;
-            input.addEventListener('keydown', (e) => e.preventDefault());
-        }
-    });
-}
-
-// --- FUNZIONI HELPER: ARROTONDAMENTO E DATE DEI FOGLI ---
 function round2(num) {
     const val = Number(num) || 0;
     return Math.round((val + Number.EPSILON) * 100) / 100;
@@ -127,8 +121,6 @@ function proceedDuplicateDateWarning() {
 
 // --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
 async function initApp() {
-    lockDateInputsToToday();
-
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
         try {
@@ -226,7 +218,7 @@ function showView(viewName) {
     }
 }
 
-// --- RENDERING GRIGLIA UTENTI ---
+// --- RENDERING GRIGLIA UTENTI (MATITA A SINISTRA, CESTINO A DESTRA) ---
 function renderAuthUsers() {
     const grid = document.getElementById("auth-users-grid");
     grid.innerHTML = "";
@@ -455,7 +447,7 @@ function backToDashboard() {
     showView("dashboard");
 }
 
-// --- DASHBOARD FOGLI ---
+// --- DASHBOARD FOGLI (RIGA VALORI A 9PX E MATITA GRIGIA) ---
 function renderDashboard() {
     document.getElementById("dash-user-name").textContent = currentUser;
     const sheets = (state.data[currentUser] && state.data[currentUser].sheets) ? state.data[currentUser].sheets : [];
@@ -499,7 +491,8 @@ function renderDashboard() {
           </div>
         </div>
 
-        <div class="text-[9px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5">
+        <!-- Valori a 9px compatti -->
+        <div class="text-[9px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
           <span>Stipendio: <strong class="text-gray-600 font-semibold">€${income}</strong></span>
           <span>Spese: <strong class="text-gray-600 font-semibold">€${totalExpenses}</strong></span>
           <span>Risparmio: <strong class="text-emerald-600 font-semibold">€${netSavings}</strong></span>
@@ -507,8 +500,8 @@ function renderDashboard() {
       </div>
 
       <div class="flex items-center gap-1 shrink-0 self-center">
-        <!-- Matita Grigia: solo modifica -->
-        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-gray-500 hover:text-blue-600 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
+        <!-- Matita Grigia Modifica Foglio -->
+        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-gray-400 hover:text-blue-600 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
@@ -526,38 +519,37 @@ function renderDashboard() {
     });
 }
 
-// --- CREA NUOVO FOGLIO ---
+// --- CREA NUOVO FOGLIO (FLATPICKR) ---
 function openNewSheetModal() {
     const today = getTodayDateString();
-    const dateInput = document.getElementById("modal-sheet-date");
-
     let minDate = null;
     try {
         minDate = getLatestSheetDate();
-    } catch(e) { minDate = null; }
+    } catch (e) { minDate = null; }
+
+    const dateInput = document.getElementById("modal-sheet-date");
+
+    if (fpCreateInstance) {
+        fpCreateInstance.destroy();
+    }
 
     if (dateInput) {
-        dateInput.setAttribute('max', today);
-        dateInput.max = today;
-        
-        if (minDate) {
-            dateInput.setAttribute('min', minDate);
-            dateInput.min = minDate;
-        } else {
-            dateInput.removeAttribute('min');
-        }
-        dateInput.value = today;
-
-        // Correzione automatica immediata se l'utente seleziona una data non ammessa su iOS
-        dateInput.onchange = function() {
-            if (this.value > today) this.value = today;
-            if (minDate && this.value < minDate) this.value = minDate;
-        };
+        fpCreateInstance = flatpickr(dateInput, {
+            locale: "it",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "j F Y",
+            defaultDate: today,
+            minDate: minDate || null,
+            maxDate: today,
+            disableMobile: true,
+            static: true
+        });
     }
 
     const modal = document.getElementById("modal-new-sheet");
     if (modal) modal.classList.remove("hidden");
-    
+
     const nameField = document.getElementById("modal-sheet-name");
     const incField = document.getElementById("modal-sheet-income");
     if (nameField) nameField.value = "";
@@ -575,30 +567,23 @@ function confirmCreateNewSheet() {
     const incomeInput = document.getElementById("modal-sheet-income")?.value.trim();
     const today = getTodayDateString();
 
-    if (!nameInput) { 
-        document.getElementById("modal-sheet-name")?.focus(); 
-        return; 
+    if (!nameInput) {
+        document.getElementById("modal-sheet-name")?.focus();
+        return;
     }
     if (!dateInput) return;
-    
-    // Auto-correzione silenziosa dei limiti data (niente alert con github.io)
-    if (dateInput > today) { 
-        document.getElementById("modal-sheet-date").value = today;
-        return; 
-    }
+
+    if (dateInput > today) return;
 
     let minDate = null;
-    try { minDate = getLatestSheetDate(); } catch(e) { minDate = null; }
+    try { minDate = getLatestSheetDate(); } catch (e) { minDate = null; }
 
-    if (minDate && dateInput < minDate) {
-        document.getElementById("modal-sheet-date").value = minDate;
-        return; 
-    }
+    if (minDate && dateInput < minDate) return;
 
     const incomeVal = round2(incomeInput);
-    if (!incomeInput || incomeVal <= 0) { 
-        document.getElementById("modal-sheet-income")?.focus(); 
-        return; 
+    if (!incomeInput || incomeVal <= 0) {
+        document.getElementById("modal-sheet-income")?.focus();
+        return;
     }
 
     const existingSheets = (state.data[currentUser]?.sheets || []);
@@ -640,7 +625,7 @@ function confirmCreateNewSheet() {
     }
 }
 
-// --- MODIFICA DATI FOGLIO ---
+// --- MODIFICA DATI FOGLIO (FLATPICKR) ---
 function openEditSheetModal(sheetId) {
     try {
         const sheets = (state.data[currentUser]?.sheets || []);
@@ -654,6 +639,10 @@ function openEditSheetModal(sheetId) {
         const today = getTodayDateString();
         const dateInput = document.getElementById("edit-sheet-date");
 
+        if (fpEditInstance) {
+            fpEditInstance.destroy();
+        }
+
         if (dateInput) {
             const otherDates = sheets
                 .filter(s => s.id !== sheetId && s.salaryDate)
@@ -665,23 +654,21 @@ function openEditSheetModal(sheetId) {
 
             const nextDates = otherDates.filter(d => d > sheet.salaryDate);
             let maxDate = today;
-
             if (nextDates.length > 0) {
                 maxDate = nextDates[0] < today ? nextDates[0] : today;
-            } else {
-                maxDate = today;
             }
 
-            if (minDate) {
-                dateInput.setAttribute('min', minDate);
-                dateInput.min = minDate;
-            } else {
-                dateInput.removeAttribute('min');
-            }
-
-            dateInput.setAttribute('max', maxDate);
-            dateInput.max = maxDate;
-            dateInput.value = sheet.salaryDate;
+            fpEditInstance = flatpickr(dateInput, {
+                locale: "it",
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "j F Y",
+                defaultDate: sheet.salaryDate,
+                minDate: minDate || null,
+                maxDate: maxDate,
+                disableMobile: true,
+                static: true
+            });
         }
 
         const nameInput = document.getElementById("edit-sheet-name");
@@ -710,26 +697,17 @@ function confirmEditSheet() {
     const incomeInput = document.getElementById("edit-sheet-income")?.value.trim();
     const today = getTodayDateString();
 
-    if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
-    if (!dateInput) { alert("Seleziona la data."); return; }
+    if (!nameInput) return;
+    if (!dateInput) return;
 
     const inputMin = document.getElementById("edit-sheet-date")?.getAttribute("min");
     const inputMax = document.getElementById("edit-sheet-date")?.getAttribute("max") || today;
 
-    if (dateInput > inputMax) {
-        alert(`La data non può superare il limite consentito (${inputMax}).`);
-        return;
-    }
-    if (inputMin && dateInput < inputMin) {
-        alert(`La data non può essere antecedente al foglio precedente (${inputMin}).`);
-        return;
-    }
+    if (dateInput > inputMax) return;
+    if (inputMin && dateInput < inputMin) return;
 
     const incomeVal = round2(incomeInput);
-    if (!incomeInput || incomeVal <= 0) {
-        alert("Inserisci uno stipendio valido.");
-        return;
-    }
+    if (!incomeInput || incomeVal <= 0) return;
 
     const otherSheets = (state.data[currentUser]?.sheets || []).filter(s => s.id !== editingSheetId);
     const isDuplicate = otherSheets.some(s => s.salaryDate === dateInput);
@@ -832,7 +810,7 @@ function renderCategories(activeSheet, totalExpenses) {
         </div>
 
         <button onclick="promptAddNewItem(${catIndex})" class="mt-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <svg class="w-3.5 h-3.5 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           Aggiungi voce a questa sezione
         </button>
       </div>
@@ -911,9 +889,7 @@ function updateItemValue(catIndex, itemIndex, val) {
     renderSheetDetail();
 }
 
-let pendingActionItem = null;
-
-// --- MODIFICA NOME VOCE ---
+// --- MODIFICA NOME VOCE (MODALE GRAFICA) ---
 function renameItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
@@ -964,7 +940,7 @@ function promptAddNewItem(catIndex) {
     renderSheetDetail();
 }
 
-// --- ELIMINA VOCE ---
+// --- ELIMINA VOCE (MODALE GRAFICA CON NOME VOCE) ---
 function deleteItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;

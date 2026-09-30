@@ -56,3 +56,48 @@ button svg {
 button:hover svg {
     transform: scale(1.15);
 }
+
+/* --- FLATPICKR: LARGHEZZA PIENA (FIX PER PC E MOBILE) --- */
+
+/* 1. Forza il contenitore generato da Flatpickr ad occupare l'intera riga */
+.flatpickr-wrapper {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* 2. Forza sia l'input originale che l'input visibile (altInput) al 100% */
+.flatpickr-input,
+input.flatpickr-input,
+input.flatpickr-input.form-control,
+.flatpickr-input[readonly] {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    min-height: 42px !important;
+}
+
+/* 3. Stile e priorità visiva del popup calendario */
+.flatpickr-calendar {
+    z-index: 99999 !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid #e5e7eb !important;
+    font-family: inherit !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+    color: #d1d5db !important;
+    background: transparent !important;
+    cursor: not-allowed !important;
+}
