@@ -461,9 +461,11 @@ function renderDashboard() {
       </div>
 
       <div class="flex items-center gap-2">
-        <button onclick="openEditSheetModal('${sheet.id}')" class="text-gray-400 hover:text-blue-600 transition p-1.5 rounded-lg hover:bg-blue-50" title="Modifica dati foglio">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+        <!-- Matita Modifica Foglio Dashboard -->
+        <button onclick="openEditSheetModal('${sheet.id}')" class="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition shadow-2xs flex items-center justify-center" title="Modifica dati foglio">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
         </button>
 
@@ -664,35 +666,55 @@ function renderCategories(activeSheet, totalExpenses) {
 
         const itemsContainer = catDiv.querySelector(`#cat-items-${catIndex}`);
         cat.items.forEach((item, itemIndex) => {
-            const maxVal = Math.max(item.max || 300, (Number(item.value) || 0) * 1.5, 100);
+            const rawVal = Number(item.value) || 0;
+            const maxVal = Math.max(item.max || 300, rawVal * 1.5, 100);
+            const displayVal = rawVal > 0 ? rawVal : "";
+
             const row = document.createElement("div");
             row.className = "space-y-1.5";
             row.innerHTML = `
         <div class="flex items-center justify-between text-xs text-gray-700">
           <span class="truncate max-w-[180px] font-medium" title="${item.name}">${item.name}</span>
           
-          <div class="flex items-center gap-2">
-            <button onclick="renameItem(${catIndex}, ${itemIndex})" class="text-gray-400 hover:text-blue-600 transition p-0.5 rounded" title="Modifica nome">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+          <div class="flex items-center gap-1.5">
+            <!-- Matita Blu -->
+            <button onclick="renameItem(${catIndex}, ${itemIndex})" class="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition shadow-2xs flex items-center justify-center" title="Modifica nome">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
               </svg>
             </button>
-            <button onclick="deleteItem(${catIndex}, ${itemIndex})" class="text-gray-400 hover:text-red-600 transition p-0.5 rounded" title="Elimina voce">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+
+            <!-- Cestino Rosso -->
+            <button onclick="deleteItem(${catIndex}, ${itemIndex})" class="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200/60 transition shadow-2xs flex items-center justify-center" title="Elimina voce">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
               </svg>
             </button>
           </div>
         </div>
 
         <div class="flex items-center gap-3">
+          <!-- Indicatore di progresso visivo (non intercettabile al tocco per evitare modifiche per errore) -->
           <input 
-            type="range" min="0" max="${maxVal}" step="5" value="${item.value || 0}" 
-            oninput="updateItemValue(${catIndex}, ${itemIndex}, this.value)" class="custom-slider"
+            type="range" min="0" max="${maxVal}" step="1" value="${rawVal}" 
+            tabindex="-1"
+            class="custom-slider pointer-events-none select-none opacity-85"
           >
-          <div class="flex items-center bg-[#f1f3f4] rounded-lg px-2.5 py-1 min-w-[75px] max-w-[95px] justify-between">
-            <span class="text-xs text-gray-500 mr-1">€</span>
-            <input type="number" value="${item.value || 0}" onchange="updateItemValue(${catIndex}, ${itemIndex}, this.value)" class="w-full bg-transparent text-right text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none">
+          
+          <!-- Riquadro importo allargato con vero placeholder per lo 0 -->
+          <div class="flex items-center bg-[#f1f3f4] rounded-xl px-3 py-1.5 min-w-[95px] max-w-[120px] justify-between border border-transparent focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
+            <span class="text-xs text-gray-400 font-semibold mr-1 select-none">€</span>
+            <input 
+              type="number" 
+              step="any"
+              inputmode="decimal"
+              placeholder="0"
+              value="${displayVal}" 
+              onfocus="this.select()"
+              onchange="updateItemValue(${catIndex}, ${itemIndex}, this.value)" 
+              class="w-full bg-transparent text-right text-xs sm:text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-400 placeholder:font-normal"
+            >
           </div>
         </div>
       `;
