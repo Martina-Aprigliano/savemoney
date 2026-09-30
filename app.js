@@ -460,16 +460,16 @@ function renderDashboard() {
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <!-- Matita Modifica Foglio Dashboard -->
-        <button onclick="openEditSheetModal('${sheet.id}')" class="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition shadow-2xs flex items-center justify-center" title="Modifica dati foglio">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- Matita Senza Sfondo: solo icona blu pulita -->
+        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center" title="Modifica dati foglio">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
         </button>
 
-        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3.5 py-2 rounded-xl group-hover:bg-emerald-100/70 transition">
+        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3.5 py-2 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0">
           Apri
           <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
@@ -676,18 +676,17 @@ function renderCategories(activeSheet, totalExpenses) {
         <div class="flex items-center justify-between text-xs text-gray-700">
           <span class="truncate max-w-[180px] font-medium" title="${item.name}">${item.name}</span>
           
-          <div class="flex items-center gap-1.5">
-            <!-- Matita Blu -->
-            <button onclick="renameItem(${catIndex}, ${itemIndex})" class="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition shadow-2xs flex items-center justify-center" title="Modifica nome">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+          <!-- Icone pure ravvicinate senza sfondi -->
+          <div class="flex items-center gap-0.5">
+            <button onclick="renameItem(${catIndex}, ${itemIndex})" class="p-1 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center" title="Modifica nome">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
               </svg>
             </button>
 
-            <!-- Cestino Rosso -->
-            <button onclick="deleteItem(${catIndex}, ${itemIndex})" class="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200/60 transition shadow-2xs flex items-center justify-center" title="Elimina voce">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <button onclick="deleteItem(${catIndex}, ${itemIndex})" class="p-1 text-red-500 hover:text-red-700 transition active:scale-95 flex items-center justify-center" title="Elimina voce">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
                 <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
               </svg>
             </button>
@@ -695,15 +694,15 @@ function renderCategories(activeSheet, totalExpenses) {
         </div>
 
         <div class="flex items-center gap-3">
-          <!-- Indicatore di progresso visivo (non intercettabile al tocco per evitare modifiche per errore) -->
+          <!-- Indicatore di progresso visivo -->
           <input 
             type="range" min="0" max="${maxVal}" step="1" value="${rawVal}" 
             tabindex="-1"
             class="custom-slider pointer-events-none select-none opacity-85"
           >
           
-          <!-- Riquadro importo allargato con vero placeholder per lo 0 -->
-          <div class="flex items-center bg-[#f1f3f4] rounded-xl px-3 py-1.5 min-w-[95px] max-w-[120px] justify-between border border-transparent focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
+          <!-- Riquadro importo: più alto con h-[42px] e py-2.5, lunghezza mantenuta -->
+          <div class="flex items-center h-[42px] bg-[#f1f3f4] rounded-xl px-3 py-2.5 min-w-[95px] max-w-[120px] justify-between border border-transparent focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
             <span class="text-xs text-gray-400 font-semibold mr-1 select-none">€</span>
             <input 
               type="number" 
@@ -713,7 +712,7 @@ function renderCategories(activeSheet, totalExpenses) {
               value="${displayVal}" 
               onfocus="this.select()"
               onchange="updateItemValue(${catIndex}, ${itemIndex}, this.value)" 
-              class="w-full bg-transparent text-right text-xs sm:text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-400 placeholder:font-normal"
+              class="w-full bg-transparent text-right text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-400 placeholder:font-normal leading-normal"
             >
           </div>
         </div>
