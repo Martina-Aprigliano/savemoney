@@ -18,6 +18,9 @@ let editingSheetId = null;
 let pendingUserForPin = null;
 let enteredPin = "";
 
+// Callback per conferma modale data duplicata
+let pendingDuplicateAction = null;
+
 let state = {
     users: ["Martina", "Marika"],
     data: {
@@ -74,18 +77,58 @@ function lockDateInputsToToday() {
         if (input) {
             input.setAttribute('max', today);
             input.max = today;
-            // Blocca la digitazione manuale da tastiera: obbliga a usare il picker calendario
             input.addEventListener('keydown', (e) => e.preventDefault());
         }
     });
 }
 
+// --- FUNZIONI HELPER: ARROTONDAMENTO E DATE DEI FOGLI ---
+function round2(num) {
+    const val = Number(num) || 0;
+    return Math.round((val + Number.EPSILON) * 100) / 100;
+}
+
+function formatCurrency(num) {
+    const val = round2(num);
+    return val % 1 === 0 ? val.toString() : val.toFixed(2);
+}
+
+function getLatestSheetDate() {
+    if (!currentUser || !state.data[currentUser] || !state.data[currentUser].sheets.length) {
+        return null;
+    }
+    const dates = state.data[currentUser].sheets
+        .map(s => s.salaryDate)
+        .filter(Boolean)
+        .sort();
+    return dates[dates.length - 1] || null;
+}
+
+// --- MODALE AVVISO DATA DUPLICATA ---
+function showDuplicateWarning(onConfirm) {
+    pendingDuplicateAction = onConfirm;
+    const modal = document.getElementById("modal-duplicate-date");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function cancelDuplicateDateWarning() {
+    pendingDuplicateAction = null;
+    const modal = document.getElementById("modal-duplicate-date");
+    if (modal) modal.classList.add("hidden");
+}
+
+function proceedDuplicateDateWarning() {
+    const action = pendingDuplicateAction;
+    cancelDuplicateDateWarning();
+    if (typeof action === "function") {
+        action();
+    }
+}
+
 // --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
 async function initApp() {
-    // 1. Blocca subito i limiti del calendario alla data di oggi
     lockDateInputsToToday();
 
-    // 2. Carica subito i dati locali se presenti (nessun ritardo grafico)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
         try {
@@ -104,7 +147,6 @@ async function initApp() {
     }
     showView("auth");
 
-    // 3. Scarica i dati aggiornati da Supabase
     if (supabaseClient) {
         try {
             const { data, error } = await supabaseClient
@@ -196,14 +238,17 @@ function renderAuthUsers() {
 
         card.innerHTML = `
       <div class="absolute top-2 right-2 flex items-center gap-1 z-10">
-        <button onclick="editUserProfile('${userName}', event)" class="p-1 text-gray-400 hover:text-blue-600 rounded transition" title="Modifica nome o PIN">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+        <!-- Matita Profilo: grigio visibile a riposo, blu in hover/active -->
+        <button onclick="editUserProfile('${userName}', event)" class="p-1 text-gray-500 hover:text-blue-600 active:scale-95 transition rounded" title="Modifica nome o PIN">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
         </button>
-        <button onclick="deleteUser('${userName}', event)" class="p-1 text-gray-400 hover:text-red-600 rounded transition" title="Elimina profilo">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        <!-- Cestino Profilo: grigio visibile a riposo, rosso in hover/active -->
+        <button onclick="deleteUser('${userName}', event)" class="p-1 text-gray-500 hover:text-red-600 active:scale-95 transition rounded" title="Elimina profilo">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
           </svg>
         </button>
       </div>
@@ -218,7 +263,6 @@ function renderAuthUsers() {
         grid.appendChild(card);
     });
 
-    // Card per aggiungere nuovo utente
     const addCard = document.createElement("div");
     addCard.className = "p-4 min-h-[110px] rounded-2xl border-2 border-dashed border-gray-200 hover:border-emerald-400 bg-white hover:bg-gray-50 text-center transition-all cursor-pointer flex flex-col items-center justify-center group";
     addCard.onclick = promptAddNewUser;
@@ -231,7 +275,6 @@ function renderAuthUsers() {
     grid.appendChild(addCard);
 }
 
-// Creazione utente con nome e PIN a 4 cifre
 function promptAddNewUser() {
     const name = prompt("Inserisci il nome del nuovo profilo (solo lettere):");
     if (!name) return;
@@ -260,7 +303,6 @@ function promptAddNewUser() {
     renderAuthUsers();
 }
 
-// Modifica profilo: scelta tra rinominare e cambiare PIN
 function editUserProfile(userName, event) {
     event.stopPropagation();
     const userData = state.data[userName] || {};
@@ -417,7 +459,7 @@ function backToDashboard() {
 // --- DASHBOARD FOGLI ---
 function renderDashboard() {
     document.getElementById("dash-user-name").textContent = currentUser;
-    const sheets = state.data[currentUser]?.sheets || [];
+    const sheets = (state.data[currentUser] && state.data[currentUser].sheets) ? state.data[currentUser].sheets : [];
     document.getElementById("dash-sheet-count").textContent = `${sheets.length} ${sheets.length === 1 ? 'foglio' : 'fogli'}`;
 
     const container = document.getElementById("dash-sheets-list");
@@ -446,7 +488,6 @@ function renderDashboard() {
         const card = document.createElement("div");
         card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center justify-between gap-2 hover:border-emerald-300 transition group";
         card.innerHTML = `
-      <!-- Sezione Sinistra: Nome, Accredito e Riga Importi tutta dritta -->
       <div class="space-y-1.5 min-w-0 flex-1">
         <div>
           <div class="text-sm font-bold text-gray-800 truncate leading-tight" title="${sheet.name}">
@@ -459,26 +500,24 @@ function renderDashboard() {
           </div>
         </div>
 
-        <!-- Riga Cifre: tutta su una linea orizzontale senza andare a capo -->
-        <div class="text-[11px] text-gray-500 flex items-center gap-2 whitespace-nowrap pt-0.5">
-          <span>Stipendio: <strong class="text-gray-700 font-semibold">€${income}</strong></span>
-          <span>Spese: <strong class="text-gray-700 font-semibold">€${totalExpenses}</strong></span>
+        <div class="text-[9px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5">
+          <span>Stipendio: <strong class="text-gray-600 font-semibold">€${income}</strong></span>
+          <span>Spese: <strong class="text-gray-600 font-semibold">€${totalExpenses}</strong></span>
           <span>Risparmio: <strong class="text-emerald-600 font-semibold">€${netSavings}</strong></span>
         </div>
       </div>
 
-      <!-- Sezione Destra: Matita e Tasto Apri affiancati e centrati -->
       <div class="flex items-center gap-1 shrink-0 self-center">
-        <!-- Matita senza sfondo: pulita e azzurra -->
-        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+        <!-- Matita Grigia: solo modifica -->
+        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-gray-500 hover:text-blue-600 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
         </button>
 
         <!-- Tasto Apri -->
-        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0 whitespace-nowrap">
+        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0 whitespace-nowrap">
           Apri
           <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
@@ -488,105 +527,223 @@ function renderDashboard() {
     });
 }
 
+// --- CREA NUOVO FOGLIO ---
 function openNewSheetModal() {
     const today = getTodayDateString();
     const dateInput = document.getElementById("modal-sheet-date");
+
     if (dateInput) {
         dateInput.setAttribute('max', today);
         dateInput.max = today;
+        
+        let minDate = null;
+        try {
+            minDate = getLatestSheetDate();
+        } catch(e) { minDate = null; }
+
+        if (minDate) {
+            dateInput.setAttribute('min', minDate);
+            dateInput.min = minDate;
+        } else {
+            dateInput.removeAttribute('min');
+        }
         dateInput.value = today;
     }
 
-    document.getElementById("modal-new-sheet").classList.remove("hidden");
-    document.getElementById("modal-sheet-name").value = "";
-    document.getElementById("modal-sheet-income").value = "";
+    const modal = document.getElementById("modal-new-sheet");
+    if (modal) modal.classList.remove("hidden");
+    
+    const nameField = document.getElementById("modal-sheet-name");
+    const incField = document.getElementById("modal-sheet-income");
+    if (nameField) nameField.value = "";
+    if (incField) incField.value = "";
 }
 
 function closeNewSheetModal() {
-    document.getElementById("modal-new-sheet").classList.add("hidden");
+    const modal = document.getElementById("modal-new-sheet");
+    if (modal) modal.classList.add("hidden");
 }
 
 function confirmCreateNewSheet() {
-    const nameInput = document.getElementById("modal-sheet-name").value.trim();
-    const dateInput = document.getElementById("modal-sheet-date").value;
-    const incomeInput = document.getElementById("modal-sheet-income").value.trim();
+    const nameInput = document.getElementById("modal-sheet-name")?.value.trim();
+    const dateInput = document.getElementById("modal-sheet-date")?.value;
+    const incomeInput = document.getElementById("modal-sheet-income")?.value.trim();
     const today = getTodayDateString();
 
     if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
     if (!dateInput) { alert("Seleziona la data."); return; }
-    if (dateInput > today) {
-        alert("Non puoi selezionare una data futura per l'accredito.");
+    
+    if (dateInput > today) { 
+        alert("Non puoi selezionare una data futura."); 
+        return; 
+    }
+
+    let minDate = null;
+    try { minDate = getLatestSheetDate(); } catch(e) { minDate = null; }
+
+    if (minDate && dateInput < minDate) {
+        alert(`Non puoi selezionare una data antecedente all'ultimo foglio (${minDate}).`);
         return;
     }
-    if (!incomeInput || Number(incomeInput) <= 0) { alert("Inserisci lo stipendio."); return; }
 
-    const initialCategories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)).map(category => {
-        category.items = category.items.map(item => ({ ...item, value: 0 }));
-        return category;
-    });
-
-    const newSheet = {
-        id: "sheet_" + Date.now(),
-        name: nameInput,
-        salaryDate: dateInput,
-        income: Number(incomeInput),
-        categories: initialCategories
-    };
-
-    state.data[currentUser].sheets.unshift(newSheet);
-    currentSheetId = newSheet.id;
-    saveState();
-    closeNewSheetModal();
-    showView("sheet-detail");
-}
-
-function openEditSheetModal(sheetId) {
-    const sheet = state.data[currentUser].sheets.find(s => s.id === sheetId);
-    if (!sheet) return;
-
-    editingSheetId = sheetId;
-
-    const today = getTodayDateString();
-    const dateInput = document.getElementById("edit-sheet-date");
-    if (dateInput) {
-        dateInput.setAttribute('max', today);
-        dateInput.max = today;
-        dateInput.value = sheet.salaryDate;
+    const incomeVal = round2(incomeInput);
+    if (!incomeInput || incomeVal <= 0) { 
+        alert("Inserisci uno stipendio valido."); 
+        return; 
     }
 
-    document.getElementById("modal-edit-sheet").classList.remove("hidden");
-    document.getElementById("edit-sheet-name").value = sheet.name;
-    document.getElementById("edit-sheet-income").value = sheet.income;
+    const existingSheets = (state.data[currentUser]?.sheets || []);
+    const isDuplicate = existingSheets.some(s => s.salaryDate === dateInput);
+
+    const executeCreate = () => {
+        if (!currentUser) return;
+        if (!state.data[currentUser]) {
+            state.data[currentUser] = { pin: null, sheets: [] };
+        }
+
+        const initialCategories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)).map(category => {
+            category.items = category.items.map(item => ({ ...item, value: 0 }));
+            return category;
+        });
+
+        const newSheet = {
+            id: "sheet_" + Date.now(),
+            name: nameInput,
+            salaryDate: dateInput,
+            income: incomeVal,
+            categories: initialCategories
+        };
+
+        closeNewSheetModal();
+        state.data[currentUser].sheets.unshift(newSheet);
+        currentSheetId = newSheet.id;
+        saveState();
+
+        renderDashboard();
+        showView("sheet-detail");
+        renderSheetDetail();
+    };
+
+    if (isDuplicate) {
+        showDuplicateWarning(executeCreate);
+    } else {
+        executeCreate();
+    }
+}
+
+// --- MODIFICA DATI FOGLIO ---
+function openEditSheetModal(sheetId) {
+    try {
+        const sheets = (state.data[currentUser]?.sheets || []);
+        const sheet = sheets.find(s => s.id === sheetId);
+        if (!sheet) return;
+        editingSheetId = sheetId;
+
+        const modal = document.getElementById("modal-edit-sheet");
+        if (modal) modal.classList.remove("hidden");
+
+        const today = getTodayDateString();
+        const dateInput = document.getElementById("edit-sheet-date");
+
+        if (dateInput) {
+            const otherDates = sheets
+                .filter(s => s.id !== sheetId && s.salaryDate)
+                .map(s => s.salaryDate)
+                .sort();
+
+            const prevDates = otherDates.filter(d => d <= sheet.salaryDate);
+            const minDate = prevDates.length > 0 ? prevDates[prevDates.length - 1] : null;
+
+            const nextDates = otherDates.filter(d => d > sheet.salaryDate);
+            let maxDate = today;
+
+            if (nextDates.length > 0) {
+                maxDate = nextDates[0] < today ? nextDates[0] : today;
+            } else {
+                maxDate = today;
+            }
+
+            if (minDate) {
+                dateInput.setAttribute('min', minDate);
+                dateInput.min = minDate;
+            } else {
+                dateInput.removeAttribute('min');
+            }
+
+            dateInput.setAttribute('max', maxDate);
+            dateInput.max = maxDate;
+            dateInput.value = sheet.salaryDate;
+        }
+
+        const nameInput = document.getElementById("edit-sheet-name");
+        const incomeInput = document.getElementById("edit-sheet-income");
+        if (nameInput) nameInput.value = sheet.name || "";
+        if (incomeInput) incomeInput.value = sheet.income || "";
+
+    } catch (err) {
+        console.error("Errore apertura modale modifica:", err);
+    }
 }
 
 function closeEditSheetModal() {
-    document.getElementById("modal-edit-sheet").classList.add("hidden");
+    const modal = document.getElementById("modal-edit-sheet");
+    if (modal) modal.classList.add("hidden");
     editingSheetId = null;
 }
 
 function confirmEditSheet() {
-    const nameInput = document.getElementById("edit-sheet-name").value.trim();
-    const dateInput = document.getElementById("edit-sheet-date").value;
+    if (!editingSheetId || !currentUser) return;
+    const sheet = (state.data[currentUser]?.sheets || []).find(s => s.id === editingSheetId);
+    if (!sheet) return;
+
+    const nameInput = document.getElementById("edit-sheet-name")?.value.trim();
+    const dateInput = document.getElementById("edit-sheet-date")?.value;
+    const incomeInput = document.getElementById("edit-sheet-income")?.value.trim();
     const today = getTodayDateString();
 
     if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
     if (!dateInput) { alert("Seleziona la data."); return; }
-    if (dateInput > today) {
-        alert("Non puoi selezionare una data futura per l'accredito.");
+
+    const inputMin = document.getElementById("edit-sheet-date")?.getAttribute("min");
+    const inputMax = document.getElementById("edit-sheet-date")?.getAttribute("max") || today;
+
+    if (dateInput > inputMax) {
+        alert(`La data non può superare il limite consentito (${inputMax}).`);
         return;
     }
-    const incomeInput = document.getElementById("edit-sheet-income").value.trim();
-    if (!incomeInput || Number(incomeInput) <= 0) { alert("Inserisci lo stipendio."); return; }
+    if (inputMin && dateInput < inputMin) {
+        alert(`La data non può essere antecedente al foglio precedente (${inputMin}).`);
+        return;
+    }
 
-    const sheet = state.data[currentUser].sheets.find(s => s.id === editingSheetId);
-    if (sheet) {
+    const incomeVal = round2(incomeInput);
+    if (!incomeInput || incomeVal <= 0) {
+        alert("Inserisci uno stipendio valido.");
+        return;
+    }
+
+    const otherSheets = (state.data[currentUser]?.sheets || []).filter(s => s.id !== editingSheetId);
+    const isDuplicate = otherSheets.some(s => s.salaryDate === dateInput);
+
+    const executeEdit = () => {
         sheet.name = nameInput;
         sheet.salaryDate = dateInput;
-        sheet.income = Number(incomeInput);
+        sheet.income = incomeVal;
+
         saveState();
+        closeEditSheetModal();
         renderDashboard();
+
+        if (currentSheetId === sheet.id) {
+            renderSheetDetail();
+        }
+    };
+
+    if (isDuplicate) {
+        showDuplicateWarning(executeEdit);
+    } else {
+        executeEdit();
     }
-    closeEditSheetModal();
 }
 
 function openSheet(sheetId) {
@@ -605,23 +762,24 @@ function renderSheetDetail() {
 
     document.getElementById("current-sheet-title").textContent = activeSheet.name;
     document.getElementById("current-sheet-date").textContent = activeSheet.salaryDate;
-    document.getElementById("input-income").value = activeSheet.income || 0;
+    document.getElementById("input-income").value = activeSheet.income || "";
 
     let totalExpenses = 0;
     const catTotals = {};
 
     activeSheet.categories.forEach(cat => {
         const sum = cat.items.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
-        catTotals[cat.key] = sum;
+        catTotals[cat.key] = round2(sum);
         totalExpenses += sum;
     });
 
-    const income = Number(activeSheet.income) || 0;
-    const netSavings = income - totalExpenses;
+    totalExpenses = round2(totalExpenses);
+    const income = round2(activeSheet.income);
+    const netSavings = round2(income - totalExpenses);
     const savingsRatio = income > 0 ? Math.round((netSavings / income) * 100) : 0;
 
-    document.getElementById("stat-total-expenses").textContent = `€${totalExpenses}`;
-    document.getElementById("stat-net-savings").textContent = `€${netSavings}`;
+    document.getElementById("stat-total-expenses").textContent = `€${formatCurrency(totalExpenses)}`;
+    document.getElementById("stat-net-savings").textContent = `€${formatCurrency(netSavings)}`;
     document.getElementById("stat-savings-ratio").textContent = `${savingsRatio}%`;
 
     const pctRicorrenti = totalExpenses > 0 ? ((catTotals["ricorrenti_base"] || 0) / totalExpenses) * 100 : 0;
@@ -685,7 +843,6 @@ function renderCategories(activeSheet, totalExpenses) {
         <div class="flex items-center justify-between text-xs text-gray-700">
           <span class="truncate max-w-[180px] font-medium" title="${item.name}">${item.name}</span>
           
-          <!-- Icone pure ravvicinate senza sfondi -->
           <div class="flex items-center gap-0.5">
             <button onclick="renameItem(${catIndex}, ${itemIndex})" class="p-1 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center" title="Modifica nome">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
@@ -703,14 +860,12 @@ function renderCategories(activeSheet, totalExpenses) {
         </div>
 
         <div class="flex items-center gap-3">
-          <!-- Indicatore di progresso visivo -->
           <input 
             type="range" min="0" max="${maxVal}" step="1" value="${rawVal}" 
             tabindex="-1"
             class="custom-slider pointer-events-none select-none opacity-85"
           >
           
-          <!-- Riquadro importo: più alto con h-[42px] e py-2.5, lunghezza mantenuta -->
           <div class="flex items-center h-[42px] bg-[#f1f3f4] rounded-xl px-3 py-2.5 min-w-[95px] max-w-[120px] justify-between border border-transparent focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
             <span class="text-xs text-gray-400 font-semibold mr-1 select-none">€</span>
             <input 
@@ -734,7 +889,7 @@ function renderCategories(activeSheet, totalExpenses) {
 function handleIncomeChange(val) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    activeSheet.income = Number(val) || 0;
+    activeSheet.income = round2(val);
     saveState();
     renderSheetDetail();
 }
@@ -742,7 +897,7 @@ function handleIncomeChange(val) {
 function updateItemValue(catIndex, itemIndex, val) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    activeSheet.categories[catIndex].items[itemIndex].value = Number(val) || 0;
+    activeSheet.categories[catIndex].items[itemIndex].value = round2(val);
     saveState();
     renderSheetDetail();
 }
@@ -776,9 +931,17 @@ function promptAddNewItem(catIndex) {
 function deleteItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    activeSheet.categories[catIndex].items.splice(itemIndex, 1);
-    saveState();
-    renderSheetDetail();
+
+    const item = activeSheet.categories[catIndex]?.items[itemIndex];
+    if (!item) return;
+
+    // Popup nativo di conferma con il nome tra parentesi
+    const conferma = confirm(`Sei sicura di voler eliminare la voce (${item.name})?`);
+    if (conferma) {
+        activeSheet.categories[catIndex].items.splice(itemIndex, 1);
+        saveState();
+        renderSheetDetail();
+    }
 }
 
 function toggleCategoryCollapse(catIndex) {
