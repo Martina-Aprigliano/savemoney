@@ -237,23 +237,22 @@ function renderAuthUsers() {
         card.className = "p-4 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 bg-gray-50 hover:bg-emerald-50/40 text-center transition-all group relative flex flex-col justify-between";
 
         card.innerHTML = `
-      <div class="absolute top-2 right-2 flex items-center gap-1 z-10">
-        <!-- Matita Profilo: grigio visibile a riposo, blu in hover/active -->
-        <button onclick="editUserProfile('${userName}', event)" class="p-1 text-gray-500 hover:text-blue-600 active:scale-95 transition rounded" title="Modifica nome o PIN">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-        </button>
-        <!-- Cestino Profilo: grigio visibile a riposo, rosso in hover/active -->
-        <button onclick="deleteUser('${userName}', event)" class="p-1 text-gray-500 hover:text-red-600 active:scale-95 transition rounded" title="Elimina profilo">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-          </svg>
-        </button>
-      </div>
+      <!-- Matita Profilo: in alto a sinistra -->
+      <button onclick="editUserProfile('${userName}', event)" class="absolute top-2.5 left-2.5 p-1 text-gray-400 hover:text-blue-600 active:scale-95 transition rounded z-10" title="Modifica nome o PIN">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+        </svg>
+      </button>
 
-      <div onclick="requestPinAuth('${userName}')" class="cursor-pointer pt-2">
+      <!-- Cestino Profilo: in alto a destra -->
+      <button onclick="deleteUser('${userName}', event)" class="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-red-600 active:scale-95 transition rounded z-10" title="Elimina profilo">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+      </button>
+
+      <div onclick="requestPinAuth('${userName}')" class="cursor-pointer pt-3">
         <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-105 transition-transform text-emerald-600 font-bold text-lg">
           ${initial}
         </div>
@@ -532,15 +531,15 @@ function openNewSheetModal() {
     const today = getTodayDateString();
     const dateInput = document.getElementById("modal-sheet-date");
 
+    let minDate = null;
+    try {
+        minDate = getLatestSheetDate();
+    } catch(e) { minDate = null; }
+
     if (dateInput) {
         dateInput.setAttribute('max', today);
         dateInput.max = today;
         
-        let minDate = null;
-        try {
-            minDate = getLatestSheetDate();
-        } catch(e) { minDate = null; }
-
         if (minDate) {
             dateInput.setAttribute('min', minDate);
             dateInput.min = minDate;
@@ -548,6 +547,12 @@ function openNewSheetModal() {
             dateInput.removeAttribute('min');
         }
         dateInput.value = today;
+
+        // Correzione automatica immediata se l'utente seleziona una data non ammessa su iOS
+        dateInput.onchange = function() {
+            if (this.value > today) this.value = today;
+            if (minDate && this.value < minDate) this.value = minDate;
+        };
     }
 
     const modal = document.getElementById("modal-new-sheet");
@@ -570,11 +575,15 @@ function confirmCreateNewSheet() {
     const incomeInput = document.getElementById("modal-sheet-income")?.value.trim();
     const today = getTodayDateString();
 
-    if (!nameInput) { alert("Inserisci il nome del foglio."); return; }
-    if (!dateInput) { alert("Seleziona la data."); return; }
+    if (!nameInput) { 
+        document.getElementById("modal-sheet-name")?.focus(); 
+        return; 
+    }
+    if (!dateInput) return;
     
+    // Auto-correzione silenziosa dei limiti data (niente alert con github.io)
     if (dateInput > today) { 
-        alert("Non puoi selezionare una data futura."); 
+        document.getElementById("modal-sheet-date").value = today;
         return; 
     }
 
@@ -582,13 +591,13 @@ function confirmCreateNewSheet() {
     try { minDate = getLatestSheetDate(); } catch(e) { minDate = null; }
 
     if (minDate && dateInput < minDate) {
-        alert(`Non puoi selezionare una data antecedente all'ultimo foglio (${minDate}).`);
-        return;
+        document.getElementById("modal-sheet-date").value = minDate;
+        return; 
     }
 
     const incomeVal = round2(incomeInput);
     if (!incomeInput || incomeVal <= 0) { 
-        alert("Inserisci uno stipendio valido."); 
+        document.getElementById("modal-sheet-income")?.focus(); 
         return; 
     }
 
@@ -902,16 +911,43 @@ function updateItemValue(catIndex, itemIndex, val) {
     renderSheetDetail();
 }
 
+let pendingActionItem = null;
+
+// --- MODIFICA NOME VOCE ---
 function renameItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    const currentName = activeSheet.categories[catIndex].items[itemIndex].name;
-    const newName = prompt("Modifica il nome della voce:", currentName);
-    if (newName && newName.trim()) {
-        activeSheet.categories[catIndex].items[itemIndex].name = newName.trim();
+    const item = activeSheet.categories[catIndex]?.items[itemIndex];
+    if (!item) return;
+
+    pendingActionItem = { catIndex, itemIndex };
+    const input = document.getElementById("input-rename-item");
+    if (input) input.value = item.name;
+
+    const modal = document.getElementById("modal-rename-item");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeRenameModal() {
+    pendingActionItem = null;
+    const modal = document.getElementById("modal-rename-item");
+    if (modal) modal.classList.add("hidden");
+}
+
+function confirmRenameItem() {
+    if (!pendingActionItem) return;
+    const { catIndex, itemIndex } = pendingActionItem;
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) { closeRenameModal(); return; }
+
+    const input = document.getElementById("input-rename-item");
+    const newName = input ? input.value.trim() : "";
+    if (newName) {
+        activeSheet.categories[catIndex].items[itemIndex].name = newName;
         saveState();
         renderSheetDetail();
     }
+    closeRenameModal();
 }
 
 function promptAddNewItem(catIndex) {
@@ -928,20 +964,37 @@ function promptAddNewItem(catIndex) {
     renderSheetDetail();
 }
 
+// --- ELIMINA VOCE ---
 function deleteItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-
     const item = activeSheet.categories[catIndex]?.items[itemIndex];
     if (!item) return;
 
-    // Popup nativo di conferma con il nome tra parentesi
-    const conferma = confirm(`Sei sicura di voler eliminare la voce (${item.name})?`);
-    if (conferma) {
-        activeSheet.categories[catIndex].items.splice(itemIndex, 1);
-        saveState();
-        renderSheetDetail();
-    }
+    pendingActionItem = { catIndex, itemIndex };
+    const label = document.getElementById("delete-item-label");
+    if (label) label.textContent = `(${item.name})`;
+
+    const modal = document.getElementById("modal-delete-item");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeDeleteItemModal() {
+    pendingActionItem = null;
+    const modal = document.getElementById("modal-delete-item");
+    if (modal) modal.classList.add("hidden");
+}
+
+function confirmExecuteDeleteItem() {
+    if (!pendingActionItem) return;
+    const { catIndex, itemIndex } = pendingActionItem;
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) { closeDeleteItemModal(); return; }
+
+    activeSheet.categories[catIndex].items.splice(itemIndex, 1);
+    saveState();
+    closeDeleteItemModal();
+    renderSheetDetail();
 }
 
 function toggleCategoryCollapse(catIndex) {

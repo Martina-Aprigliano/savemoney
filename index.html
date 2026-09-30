@@ -267,13 +267,13 @@
     </div>
 
     <!-- ======================================================= -->
-    <!-- 5. MODALI (CREA, MODIFICA ED ELIMINA FOGLIO)             -->
+    <!-- 5. MODALI                                               -->
     <!-- ======================================================= -->
 
     <!-- MODALE CREA NUOVO FOGLIO -->
     <div id="modal-new-sheet"
         class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl overflow-hidden">
             <h3 class="text-base font-bold text-gray-800">Crea Nuovo Foglio Mese</h3>
 
             <div class="space-y-3">
@@ -289,9 +289,14 @@
                     <label class="block text-xs font-semibold text-gray-600 mb-1">
                         Data accredito stipendio <span class="text-red-500">*</span>
                     </label>
-                    <input type="date" id="modal-sheet-date"
-                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none min-h-[42px]"
-                        required>
+                    <!-- Wrapper anti-sbordamento per browser mobile -->
+                    <div
+                        class="w-full overflow-hidden rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-emerald-500">
+                        <input type="date" id="modal-sheet-date"
+                            class="w-full block bg-white px-3 py-2 text-sm text-gray-700 outline-none min-h-[42px] max-w-full box-border"
+                            style="-webkit-appearance: none; appearance: none; width: 100%; box-sizing: border-box;"
+                            required>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">
@@ -319,7 +324,7 @@
     <!-- MODALE MODIFICA DATI FOGLIO -->
     <div id="modal-edit-sheet"
         class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl overflow-hidden">
             <h3 class="text-base font-bold text-gray-800">Modifica Dati Foglio</h3>
 
             <div class="space-y-3">
@@ -335,9 +340,14 @@
                     <label class="block text-xs font-semibold text-gray-600 mb-1">
                         Data accredito <span class="text-red-500">*</span>
                     </label>
-                    <input type="date" id="edit-sheet-date"
-                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[42px]"
-                        required>
+                    <!-- Wrapper anti-sbordamento per browser mobile -->
+                    <div
+                        class="w-full overflow-hidden rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500">
+                        <input type="date" id="edit-sheet-date"
+                            class="w-full block bg-white px-3 py-2 text-sm text-gray-700 outline-none min-h-[42px] max-w-full box-border"
+                            style="-webkit-appearance: none; appearance: none; width: 100%; box-sizing: border-box;"
+                            required>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">
@@ -390,6 +400,7 @@
             </div>
         </div>
     </div>
+
     <!-- MODALE AVVISO DATA DUPLICATA -->
     <div id="modal-duplicate-date"
         class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
@@ -414,6 +425,60 @@
                 <button type="button" onclick="proceedDuplicateDateWarning()"
                     class="w-1/2 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition shadow-sm cursor-pointer">
                     Procedi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE RINOMINA VOCE -->
+    <div id="modal-rename-item"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-xs w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800">Modifica voce</h3>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Nome della voce</label>
+                <input type="text" id="input-rename-item" maxlength="35"
+                    class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-1">
+                <button type="button" onclick="closeRenameModal()"
+                    class="px-4 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer">
+                    Annulla
+                </button>
+                <button type="button" onclick="confirmRenameItem()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm cursor-pointer">
+                    Salva
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE ELIMINA VOCE -->
+    <div id="modal-delete-item"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-xs w-full p-6 text-center space-y-4 shadow-xl">
+            <div class="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-gray-800">Elimina Voce</h3>
+                <p class="text-xs text-gray-600 mt-1 leading-relaxed">
+                    Sei sicura di voler eliminare <strong id="delete-item-label"
+                        class="text-gray-900 font-semibold"></strong>?
+                </p>
+            </div>
+            <div class="flex items-center justify-center gap-2 pt-1">
+                <button type="button" onclick="closeDeleteItemModal()"
+                    class="w-1/2 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer">
+                    Annulla
+                </button>
+                <button type="button" onclick="confirmExecuteDeleteItem()"
+                    class="w-1/2 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition shadow-sm cursor-pointer">
+                    Elimina
                 </button>
             </div>
         </div>
