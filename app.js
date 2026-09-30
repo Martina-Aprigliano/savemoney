@@ -444,32 +444,43 @@ function renderDashboard() {
         const netSavings = income - totalExpenses;
 
         const card = document.createElement("div");
-        card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center justify-between hover:border-emerald-300 transition group";
+        card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center justify-between gap-3 hover:border-emerald-300 transition group";
         card.innerHTML = `
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-bold text-gray-800">${sheet.name}</span>
-          <span class="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium">
-            Accredito: ${sheet.salaryDate}
-          </span>
+      <!-- Colonna Sinistra: Nome, Accredito sotto e Riepilogo cifre -->
+      <div class="space-y-2 min-w-0 flex-1">
+        <div>
+          <!-- Nome Foglio (fino a 19-20 caratteri bello dritto) -->
+          <div class="text-sm font-bold text-gray-800 truncate" title="${sheet.name}">
+            ${sheet.name}
+          </div>
+          <!-- Data Accredito posizionata subito sotto -->
+          <div class="mt-0.5">
+            <span class="inline-block text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium whitespace-nowrap">
+              Accredito: ${sheet.salaryDate}
+            </span>
+          </div>
         </div>
-        <div class="text-xs text-gray-500 flex items-center gap-3">
-          <span>Stipendio: <strong class="text-gray-700">€${income}</strong></span>
-          <span>Spese: <strong class="text-gray-700">€${totalExpenses}</strong></span>
-          <span>Risparmio: <strong class="text-emerald-600">€${netSavings}</strong></span>
+        
+        <!-- Riga Cifre compatta -->
+        <div class="text-xs text-gray-500 flex items-center gap-2.5 sm:gap-3 flex-wrap pt-0.5">
+          <span class="whitespace-nowrap">Stipendio: <strong class="text-gray-700">€${income}</strong></span>
+          <span class="whitespace-nowrap">Spese: <strong class="text-gray-700">€${totalExpenses}</strong></span>
+          <span class="whitespace-nowrap">Risparmio: <strong class="text-emerald-600">€${netSavings}</strong></span>
         </div>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0">
-        <!-- Matita Senza Sfondo: solo icona blu pulita -->
-        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center" title="Modifica dati foglio">
+      <!-- Colonna Destra: Matita e Apri allineati al centro -->
+      <div class="flex items-center gap-1.5 shrink-0 self-center">
+        <!-- Matita Senza Sfondo: pulita e centrata -->
+        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
         </button>
 
-        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3.5 py-2 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0">
+        <!-- Tasto Apri -->
+        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3.5 py-2 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0 whitespace-nowrap">
           Apri
           <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
