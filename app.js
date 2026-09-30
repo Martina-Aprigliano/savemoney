@@ -8,7 +8,7 @@ if (window.supabase) {
 }
 
 // --- STATO GLOBALE DELL'APPLICAZIONE ---
-const STORAGE_KEY = "savemoney_app_v2";
+const STORAGE_KEY = "savemoney_app_v3";
 
 let currentUser = null;
 let currentSheetId = null;
@@ -23,6 +23,10 @@ let pendingDuplicateAction = null;
 
 // Gestione Modali Voci
 let pendingActionItem = null;
+
+// Gestione Chiusura Mese (Rendiconto) e Grafico
+let pendingLockSheetId = null;
+let rendicontoChartInstance = null;
 
 // Istanze Flatpickr
 let fpCreateInstance = null;
@@ -200,6 +204,8 @@ function showView(viewName) {
     document.getElementById("view-pin").classList.add("hidden");
     document.getElementById("view-dashboard").classList.add("hidden");
     document.getElementById("view-sheet-detail").classList.add("hidden");
+    const viewRend = document.getElementById("view-rendiconto");
+    if (viewRend) viewRend.classList.add("hidden");
 
     if (viewName === "auth") {
         currentUser = null;
@@ -215,10 +221,13 @@ function showView(viewName) {
     } else if (viewName === "sheet-detail") {
         document.getElementById("view-sheet-detail").classList.remove("hidden");
         renderSheetDetail();
+    } else if (viewName === "rendiconto") {
+        if (viewRend) viewRend.classList.remove("hidden");
+        renderRendicontoView();
     }
 }
 
-// --- RENDERING GRIGLIA UTENTI (MATITA A SINISTRA, CESTINO A DESTRA) ---
+// --- RENDERING GRIGLIA UTENTI ---
 function renderAuthUsers() {
     const grid = document.getElementById("auth-users-grid");
     grid.innerHTML = "";
@@ -229,16 +238,14 @@ function renderAuthUsers() {
         card.className = "p-4 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 bg-gray-50 hover:bg-emerald-50/40 text-center transition-all group relative flex flex-col justify-between";
 
         card.innerHTML = `
-      <!-- Matita Profilo: in alto a sinistra -->
-      <button onclick="editUserProfile('${userName}', event)" class="absolute top-2.5 left-2.5 p-1 text-gray-400 hover:text-blue-600 active:scale-95 transition rounded z-10" title="Modifica nome o PIN">
+      <button onclick="editUserProfile('${userName}', event)" class="absolute top-2.5 left-2.5 p-1 text-gray-400 hover:text-blue-600 active:scale-95 transition rounded z-10 cursor-pointer" title="Modifica nome o PIN">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
           <path d="M12 20h9"></path>
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
         </svg>
       </button>
 
-      <!-- Cestino Profilo: in alto a destra -->
-      <button onclick="deleteUser('${userName}', event)" class="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-red-600 active:scale-95 transition rounded z-10" title="Elimina profilo">
+      <button onclick="deleteUser('${userName}', event)" class="absolute top-2.5 right-2.5 p-1 text-gray-400 hover:text-red-600 active:scale-95 transition rounded z-10 cursor-pointer" title="Elimina profilo">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
           <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
         </svg>
@@ -447,7 +454,72 @@ function backToDashboard() {
     showView("dashboard");
 }
 
-// --- DASHBOARD FOGLI (RIGA VALORI A 9PX E MATITA GRIGIA) ---
+// --- GESTIONE RENDICONTO & MODALI BLOCCO / SBLOCCO ---
+function openRendiconto(sheetId) {
+    const sheets = (state.data[currentUser]?.sheets || []);
+    const sheet = sheets.find(s => s.id === sheetId);
+    if (!sheet) return;
+
+    const latestDate = sheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
+    
+    // Blocco: l'ultimo mese in corso non può avere rendiconto
+    if (sheet.salaryDate >= latestDate) {
+        return;
+    }
+
+    if (sheet.isLocked) {
+        currentSheetId = sheetId;
+        showView("rendiconto");
+    } else {
+        pendingLockSheetId = sheetId;
+        const modal = document.getElementById("modal-confirm-lock");
+        if (modal) modal.classList.remove("hidden");
+    }
+}
+
+function closeConfirmLockModal() {
+    pendingLockSheetId = null;
+    const modal = document.getElementById("modal-confirm-lock");
+    if (modal) modal.classList.add("hidden");
+}
+
+function executeConfirmLockAndRendiconto() {
+    if (!pendingLockSheetId) return;
+    const sheet = (state.data[currentUser]?.sheets || []).find(s => s.id === pendingLockSheetId);
+    if (!sheet) return;
+
+    sheet.isLocked = true;
+    sheet.closedDate = getTodayDateString();
+    saveState();
+
+    currentSheetId = sheet.id;
+    closeConfirmLockModal();
+    showView("rendiconto");
+}
+
+function openUnlockSheetModal() {
+    const modal = document.getElementById("modal-confirm-unlock");
+    if (modal) modal.classList.remove("hidden");
+}
+
+function closeUnlockSheetModal() {
+    const modal = document.getElementById("modal-confirm-unlock");
+    if (modal) modal.classList.add("hidden");
+}
+
+function executeUnlockSheet() {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) return;
+
+    activeSheet.isLocked = false;
+    delete activeSheet.closedDate;
+    saveState();
+
+    closeUnlockSheetModal();
+    renderSheetDetail();
+}
+
+// --- DASHBOARD FOGLI ---
 function renderDashboard() {
     document.getElementById("dash-user-name").textContent = currentUser;
     const sheets = (state.data[currentUser] && state.data[currentUser].sheets) ? state.data[currentUser].sheets : [];
@@ -460,13 +532,15 @@ function renderDashboard() {
         container.innerHTML = `
       <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-gray-200">
         <p class="text-xs text-gray-500">Non hai ancora nessun foglio creato per questo profilo.</p>
-        <button onclick="openNewSheetModal()" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm">
+        <button onclick="openNewSheetModal()" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
           Crea il tuo primo foglio
         </button>
       </div>
     `;
         return;
     }
+
+    const latestDate = sheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
 
     sheets.forEach(sheet => {
         let totalExpenses = 0;
@@ -476,9 +550,14 @@ function renderDashboard() {
         const income = Number(sheet.income) || 0;
         const netSavings = income - totalExpenses;
 
+        const hasNextSheet = sheet.salaryDate < latestDate;
+        const isRendicontoActive = hasNextSheet;
+        const isLocked = Boolean(sheet.isLocked) && hasNextSheet;
+
         const card = document.createElement("div");
         card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center justify-between gap-2 hover:border-emerald-300 transition group";
         card.innerHTML = `
+      <!-- Dati del foglio a sinistra -->
       <div class="space-y-1.5 min-w-0 flex-1">
         <div>
           <div class="text-sm font-bold text-gray-800 truncate leading-tight" title="${sheet.name}">
@@ -491,28 +570,46 @@ function renderDashboard() {
           </div>
         </div>
 
-        <!-- Valori a 9px compatti -->
         <div class="text-[9px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
           <span>Stipendio: <strong class="text-gray-600 font-semibold">€${income}</strong></span>
           <span>Spese: <strong class="text-gray-600 font-semibold">€${totalExpenses}</strong></span>
-          <span>Risparmio: <strong class="text-emerald-600 font-semibold">€${netSavings}</strong></span>
+          <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-500' : 'text-emerald-600'} font-semibold">€${netSavings}</strong></span>
         </div>
       </div>
 
-      <div class="flex items-center gap-1 shrink-0 self-center">
-        <!-- Matita Grigia Modifica Foglio -->
-        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-gray-400 hover:text-blue-600 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
+      <!-- Sezione Azioni a destra -->
+      <div class="flex items-center gap-2 shrink-0 self-center">
+        <!-- Matita a sinistra -->
+        <button onclick="openEditSheetModal('${sheet.id}')" 
+          class="p-1.5 text-gray-400 hover:text-blue-600 transition active:scale-95 flex items-center justify-center shrink-0 cursor-pointer" 
+          title="Modifica dati foglio">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
             <path d="M12 20h9"></path>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
           </svg>
         </button>
 
-        <!-- Tasto Apri -->
-        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0 whitespace-nowrap">
-          Apri
-          <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-        </button>
+        <!-- Colonna Bottoni -->
+        <div class="flex flex-col gap-1.5 items-stretch w-[88px]">
+          <!-- 1. Apri / Visualizza -->
+          <button onclick="openSheet('${sheet.id}')" 
+            class="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/70 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer">
+            <span>${isLocked ? 'Visualizza' : 'Apri'}</span>
+            <svg class="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </button>
+
+          <!-- 2. Rendiconto -->
+          <button ${isRendicontoActive ? `onclick="openRendiconto('${sheet.id}')"` : 'disabled'} 
+            class="w-full flex items-center justify-center text-[10px] font-bold py-1 rounded-xl transition whitespace-nowrap ${
+              isRendicontoActive 
+                ? 'bg-sky-100 hover:bg-sky-200 text-sky-800 cursor-pointer active:scale-95' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed select-none'
+            }">
+            <span>Rendiconto</span>
+          </button>
+        </div>
       </div>
     `;
         container.appendChild(card);
@@ -605,7 +702,8 @@ function confirmCreateNewSheet() {
             name: nameInput,
             salaryDate: dateInput,
             income: incomeVal,
-            categories: initialCategories
+            categories: initialCategories,
+            isLocked: false
         };
 
         closeNewSheetModal();
@@ -743,13 +841,25 @@ function getActiveSheet() {
     return state.data[currentUser].sheets.find(s => s.id === currentSheetId) || null;
 }
 
+// --- DETTAGLIO FOGLIO ---
 function renderSheetDetail() {
     const activeSheet = getActiveSheet();
     if (!activeSheet) { backToDashboard(); return; }
 
+    const isLocked = Boolean(activeSheet.isLocked);
+
+    const btnUnlock = document.getElementById("btn-unlock-sheet");
+    if (btnUnlock) {
+        if (isLocked) btnUnlock.classList.remove("hidden");
+        else btnUnlock.classList.add("hidden");
+    }
+
     document.getElementById("current-sheet-title").textContent = activeSheet.name;
     document.getElementById("current-sheet-date").textContent = activeSheet.salaryDate;
-    document.getElementById("input-income").value = activeSheet.income || "";
+
+    const incomeInput = document.getElementById("input-income");
+    incomeInput.value = activeSheet.income || "";
+    incomeInput.disabled = isLocked;
 
     let totalExpenses = 0;
     const catTotals = {};
@@ -765,9 +875,22 @@ function renderSheetDetail() {
     const netSavings = round2(income - totalExpenses);
     const savingsRatio = income > 0 ? Math.round((netSavings / income) * 100) : 0;
 
+    const isNegative = netSavings < 0;
+    const statSavingsEl = document.getElementById("stat-net-savings");
+    const statRatioEl = document.getElementById("stat-savings-ratio");
+
+    if (isNegative) {
+        statSavingsEl.className = "text-lg sm:text-2xl font-bold text-red-500 mt-1";
+        statRatioEl.className = "text-lg sm:text-2xl font-bold text-red-500 mt-1";
+        statSavingsEl.textContent = `-€${formatCurrency(Math.abs(netSavings))}`;
+    } else {
+        statSavingsEl.className = "text-lg sm:text-2xl font-bold text-emerald-600 mt-1";
+        statRatioEl.className = "text-lg sm:text-2xl font-bold text-emerald-600 mt-1";
+        statSavingsEl.textContent = `€${formatCurrency(netSavings)}`;
+    }
+    
+    statRatioEl.textContent = `${savingsRatio}%`;
     document.getElementById("stat-total-expenses").textContent = `€${formatCurrency(totalExpenses)}`;
-    document.getElementById("stat-net-savings").textContent = `€${formatCurrency(netSavings)}`;
-    document.getElementById("stat-savings-ratio").textContent = `${savingsRatio}%`;
 
     const pctRicorrenti = totalExpenses > 0 ? ((catTotals["ricorrenti_base"] || 0) / totalExpenses) * 100 : 0;
     const pctSpot = totalExpenses > 0 ? ((catTotals["uscite_spot"] || 0) / totalExpenses) * 100 : 0;
@@ -783,6 +906,7 @@ function renderSheetDetail() {
 function renderCategories(activeSheet, totalExpenses) {
     const container = document.getElementById("categories-container");
     container.innerHTML = "";
+    const isLocked = Boolean(activeSheet.isLocked);
 
     activeSheet.categories.forEach((cat, catIndex) => {
         const catSum = cat.items.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
@@ -809,10 +933,11 @@ function renderCategories(activeSheet, totalExpenses) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 pt-1" id="cat-items-${catIndex}">
         </div>
 
-        <button onclick="promptAddNewItem(${catIndex})" class="mt-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+        ${!isLocked ? `
+        <button onclick="promptAddNewItem(${catIndex})" class="mt-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer">
           <svg class="w-3.5 h-3.5 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           Aggiungi voce a questa sezione
-        </button>
+        </button>` : ''}
       </div>
     `;
 
@@ -830,20 +955,21 @@ function renderCategories(activeSheet, totalExpenses) {
         <div class="flex items-center justify-between text-xs text-gray-700">
           <span class="truncate max-w-[180px] font-medium" title="${item.name}">${item.name}</span>
           
+          ${!isLocked ? `
           <div class="flex items-center gap-0.5">
-            <button onclick="renameItem(${catIndex}, ${itemIndex})" class="p-1 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center" title="Modifica nome">
+            <button onclick="renameItem(${catIndex},${itemIndex})" class="p-1 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center cursor-pointer" title="Modifica nome">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
               </svg>
             </button>
 
-            <button onclick="deleteItem(${catIndex}, ${itemIndex})" class="p-1 text-red-500 hover:text-red-700 transition active:scale-95 flex items-center justify-center" title="Elimina voce">
+            <button onclick="deleteItem(${catIndex},${itemIndex})" class="p-1 text-red-500 hover:text-red-700 transition active:scale-95 flex items-center justify-center cursor-pointer" title="Elimina voce">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
                 <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
               </svg>
             </button>
-          </div>
+          </div>` : ''}
         </div>
 
         <div class="flex items-center gap-3">
@@ -853,7 +979,7 @@ function renderCategories(activeSheet, totalExpenses) {
             class="custom-slider pointer-events-none select-none opacity-85"
           >
           
-          <div class="flex items-center h-[42px] bg-[#f1f3f4] rounded-xl px-3 py-2.5 min-w-[95px] max-w-[120px] justify-between border border-transparent focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
+          <div class="flex items-center h-[42px] ${isLocked ? 'bg-gray-100/70 border-gray-200' : 'bg-[#f1f3f4] border-transparent'} rounded-xl px-3 py-2.5 min-w-[95px] max-w-[120px] justify-between border focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
             <span class="text-xs text-gray-400 font-semibold mr-1 select-none">€</span>
             <input 
               type="number" 
@@ -861,9 +987,10 @@ function renderCategories(activeSheet, totalExpenses) {
               inputmode="decimal"
               placeholder="0"
               value="${displayVal}" 
+              ${isLocked ? 'disabled' : ''}
               onfocus="this.select()"
               onchange="updateItemValue(${catIndex}, ${itemIndex}, this.value)" 
-              class="w-full bg-transparent text-right text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-400 placeholder:font-normal leading-normal"
+              class="w-full bg-transparent text-right text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-400 placeholder:font-normal leading-normal ${isLocked ? 'cursor-not-allowed text-gray-600' : ''}"
             >
           </div>
         </div>
@@ -871,6 +998,162 @@ function renderCategories(activeSheet, totalExpenses) {
             itemsContainer.appendChild(row);
         });
     });
+}
+
+// --- RENDERING DELLA SCHERMATA RENDICONTO ---
+function renderRendicontoView() {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) { backToDashboard(); return; }
+
+    document.getElementById("rendiconto-sheet-title").textContent = activeSheet.name;
+    document.getElementById("rendiconto-date-start").textContent = activeSheet.salaryDate;
+    document.getElementById("rendiconto-date-end").textContent = activeSheet.closedDate || getTodayDateString();
+
+    const income = round2(activeSheet.income);
+    let totalExpenses = 0;
+    const catAmounts = [];
+    const catLabels = [];
+    const catColors = [];
+    const allItems = [];
+
+    activeSheet.categories.forEach(cat => {
+        let sum = 0;
+        cat.items.forEach(item => {
+            const v = Number(item.value) || 0;
+            sum += v;
+            if (v > 0) allItems.push({ name: item.name, value: v, category: cat.title });
+        });
+        sum = round2(sum);
+        totalExpenses += sum;
+        catAmounts.push(sum);
+        catLabels.push(cat.title);
+        catColors.push(cat.color || "#10b981");
+    });
+
+    totalExpenses = round2(totalExpenses);
+    const netSavings = round2(income - totalExpenses);
+    const savingsRatio = income > 0 ? Math.round((netSavings / income) * 100) : 0;
+
+    const heroSavingsEl = document.getElementById("rendiconto-hero-savings");
+    if (netSavings < 0) {
+        heroSavingsEl.className = "text-2xl sm:text-3xl font-extrabold text-red-500";
+        heroSavingsEl.textContent = `-€${formatCurrency(Math.abs(netSavings))}`;
+    } else {
+        heroSavingsEl.className = "text-2xl sm:text-3xl font-extrabold text-emerald-600";
+        heroSavingsEl.textContent = `€${formatCurrency(netSavings)}`;
+    }
+
+    document.getElementById("rendiconto-hero-income").textContent = `€${formatCurrency(income)}`;
+    document.getElementById("rendiconto-hero-expenses").textContent = `€${formatCurrency(totalExpenses)}`;
+
+    const badge = document.getElementById("rendiconto-badge-quote");
+    const fBox = document.getElementById("rendiconto-feedback-box");
+    const fTitle = document.getElementById("rendiconto-feedback-title");
+    const fText = document.getElementById("rendiconto-feedback-text");
+
+    if (savingsRatio >= 25) {
+        badge.textContent = `Modalità Cassaforte: ${savingsRatio}% 🛡️`;
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200";
+        fBox.className = "p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/70 text-xs space-y-1 text-emerald-900";
+        fTitle.innerHTML = "<span>🏆</span> <span>Ottima disciplina finanziaria!</span>";
+        fText.textContent = `Hai accantonato il ${savingsRatio}% del tuo stipendio (€${formatCurrency(netSavings)}). Ottima gestione del budget, con uscite controllate e risparmio prioritario.`;
+    } else if (savingsRatio >= 10) {
+        badge.textContent = `In perfetto equilibrio: ${savingsRatio}% ⚖️`;
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200";
+        fBox.className = "p-4 rounded-2xl bg-sky-50/60 border border-sky-200/70 text-xs space-y-1 text-sky-900";
+        fTitle.innerHTML = "<span>⚖️</span> <span>Mese in ottimo equilibrio</span>";
+        fText.textContent = `Hai chiuso con un risparmio del ${savingsRatio}% (€${formatCurrency(netSavings)}). Tutte le uscite sono state sostenute senza sforare il capitale disponibile.`;
+    } else if (savingsRatio >= 0) {
+        badge.textContent = `Mese tirato: ${savingsRatio}% 🧗`;
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200";
+        fBox.className = "p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs space-y-1 text-amber-900";
+        fTitle.innerHTML = "<span>⚠️</span> <span>Mese tirato ma in pari</span>";
+        fText.textContent = `Hai terminato con un margine residuo di €${formatCurrency(netSavings)} (${savingsRatio}%). Le spese hanno assorbito gran parte del budget; monitora le voci spot per il prossimo ciclo.`;
+    } else {
+        const deficit = formatCurrency(Math.abs(netSavings));
+        badge.textContent = `Spese oltre lo stipendio: ${savingsRatio}% 🚨`;
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-red-100 text-red-800 border border-red-200";
+        fBox.className = "p-4 rounded-2xl bg-red-50/70 border border-red-200 text-xs space-y-1 text-red-900";
+        fTitle.innerHTML = "<span>🚨</span> <span>Uscite superiori allo stipendio</span>";
+        fText.textContent = `Questo mese hai speso €${deficit} in più rispetto allo stipendio accreditato. Il disavanzo è stato coperto da risparmi precedenti; per il prossimo ciclo riduci le spese variabili per tornare in attivo.`;
+    }
+
+    const ctx = document.getElementById("rendicontoPieChart")?.getContext("2d");
+    if (ctx) {
+        if (rendicontoChartInstance) {
+            rendicontoChartInstance.destroy();
+        }
+        rendicontoChartInstance = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catAmounts.every(v => v === 0) ? [1] : catAmounts,
+                    backgroundColor: catAmounts.every(v => v === 0) ? ["#e5e7eb"] : catColors,
+                    borderWidth: 2,
+                    borderColor: "#ffffff"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: !catAmounts.every(v => v === 0),
+                        callbacks: {
+                            label: (context) => ` €${context.raw}`
+                        }
+                    }
+                },
+                cutout: "68%"
+            }
+        });
+    }
+
+    const legContainer = document.getElementById("rendiconto-legend");
+    legContainer.innerHTML = "";
+    activeSheet.categories.forEach((cat, idx) => {
+        const sum = catAmounts[idx];
+        const pct = totalExpenses > 0 ? Math.round((sum / totalExpenses) * 100) : 0;
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between";
+        row.innerHTML = `
+            <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${cat.color};"></span>
+                <span class="text-gray-700 font-medium">${cat.title}</span>
+            </div>
+            <span class="font-bold text-gray-800">€${sum} (${pct}%)</span>
+        `;
+        legContainer.appendChild(row);
+    });
+
+    allItems.sort((a, b) => b.value - a.value);
+    const top3 = allItems.slice(0, 3);
+    const topContainer = document.getElementById("rendiconto-top-items");
+    topContainer.innerHTML = "";
+
+    if (top3.length === 0) {
+        topContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Nessuna voce di spesa registrata.</p>`;
+    } else {
+        top3.forEach((item, index) => {
+            const medals = ["🥇", "🥈", "🥉"];
+            const div = document.createElement("div");
+            div.className = "flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100 text-xs";
+            div.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="text-base leading-none">${medals[index]}</span>
+                    <div>
+                        <span class="font-semibold text-gray-800">${item.name}</span>
+                        <span class="text-[10px] text-gray-400 block">${item.category}</span>
+                    </div>
+                </div>
+                <span class="font-bold text-gray-900">€${item.value}</span>
+            `;
+            topContainer.appendChild(div);
+        });
+    }
 }
 
 function handleIncomeChange(val) {
@@ -889,7 +1172,7 @@ function updateItemValue(catIndex, itemIndex, val) {
     renderSheetDetail();
 }
 
-// --- MODIFICA NOME VOCE (MODALE GRAFICA) ---
+// --- MODIFICA NOME VOCE ---
 function renameItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
@@ -940,7 +1223,7 @@ function promptAddNewItem(catIndex) {
     renderSheetDetail();
 }
 
-// --- ELIMINA VOCE (MODALE GRAFICA CON NOME VOCE) ---
+// --- ELIMINA VOCE ---
 function deleteItem(catIndex, itemIndex) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
@@ -1008,6 +1291,7 @@ function executeDeleteCurrentSheet() {
     backToDashboard();
 }
 
+// --- ESPORTAZIONE EXCEL ---
 function exportToExcel() {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
@@ -1016,6 +1300,9 @@ function exportToExcel() {
     rows.push(["PROFILO", currentUser]);
     rows.push(["FOGLIO", activeSheet.name]);
     rows.push(["DATA ACCREDITO", activeSheet.salaryDate]);
+    if (activeSheet.closedDate) {
+        rows.push(["DATA CHIUSURA BILANCIO", activeSheet.closedDate]);
+    }
     rows.push(["STIPENDIO / ENTRATA (€)", activeSheet.income]);
     rows.push([]);
     rows.push(["SEZIONE", "VOCE DI SPESA", "IMPORTO (€)"]);
@@ -1038,6 +1325,62 @@ function exportToExcel() {
 
     const fileName = `saveMoney_${currentUser}_${activeSheet.name.replace(/\s+/g, "_")}.xlsx`;
     XLSX.writeFile(workbook, fileName);
+}
+
+// --- ESPORTAZIONE PDF RENDICONTO ---
+async function exportRendicontoToPDF() {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) return;
+
+    const sourceEl = document.getElementById("rendiconto-card-printable");
+    if (!sourceEl) {
+        alert("Errore: scheda rendiconto non trovata.");
+        return;
+    }
+
+    if (typeof html2pdf === "undefined") {
+        alert("Libreria PDF non ancora pronta. Attendi un istante e riprova.");
+        return;
+    }
+
+    // Mostra il footer e formatta data e ora esatte
+    const footerEl = document.getElementById("pdf-exclusive-footer");
+    const timestampEl = document.getElementById("pdf-footer-timestamp");
+    if (footerEl && timestampEl) {
+        const now = new Date();
+        const d = String(now.getDate()).padStart(2, '0');
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const y = now.getFullYear();
+        const hr = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        timestampEl.textContent = `${d}/${m}/${y} ${hr}:${min}`;
+        footerEl.classList.remove("hidden");
+    }
+
+    const opt = {
+        margin: [6, 6, 6, 6],
+        filename: `saveMoney_Rendiconto_${currentUser}_${activeSheet.name.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            scrollY: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+        await html2pdf().set(opt).from(sourceEl).save();
+    } catch (err) {
+        console.error("Errore generazione PDF:", err);
+        alert("Si è verificato un errore durante la creazione del PDF.");
+    } finally {
+        // Nasconde nuovamente il footer a video
+        if (footerEl) {
+            footerEl.classList.add("hidden");
+        }
+    }
 }
 
 document.addEventListener("DOMContentLoaded", initApp);

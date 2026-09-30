@@ -12,6 +12,10 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Supabase JS Client per sincronizzazione cloud -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js per grafico a torta del Rendiconto -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf.js per esportazione PDF del Rendiconto -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Foglio di stile personalizzato -->
     <link rel="stylesheet" href="style.css">
@@ -85,7 +89,7 @@
                 <p class="text-xs text-gray-500 mt-1">Seleziona il tuo profilo per accedere ai tuoi fogli</p>
             </div>
 
-            <!-- Questo contenitore viene popolato da app.js con Martina, Marika e il pulsante + Aggiungi -->
+            <!-- Popolato da app.js con Martina, Marika e il pulsante + Aggiungi -->
             <div id="auth-users-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2"></div>
         </div>
 
@@ -166,11 +170,12 @@
 
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="logoutToAuth()"
-                        class="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                        class="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition cursor-pointer">
                         Cambia
                     </button>
+
                     <button type="button" onclick="openNewSheetModal()"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-semibold px-2.5 py-2 rounded-xl flex items-center gap-1 shadow-sm transition whitespace-nowrap shrink-0">
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-semibold px-2.5 py-2 rounded-xl flex items-center gap-1 shadow-sm transition whitespace-nowrap shrink-0 cursor-pointer">
                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
                             </path>
@@ -186,10 +191,8 @@
                 <span class="text-xs text-gray-400" id="dash-sheet-count">0 fogli</span>
             </div>
 
-            <!-- Elenco card fogli -->
-            <div id="dash-sheets-list" class="space-y-3">
-                <!-- Generato dinamicamente via JS -->
-            </div>
+            <!-- Elenco card fogli generato dinamicamente via JS -->
+            <div id="dash-sheets-list" class="space-y-3"></div>
         </div>
 
         <!-- ======================================================= -->
@@ -200,7 +203,7 @@
             <!-- Barra superiore con Back e Azioni -->
             <div class="flex items-center justify-between bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
                 <button type="button" onclick="backToDashboard()"
-                    class="text-xs font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition">
+                    class="text-xs font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
                         </path>
@@ -209,16 +212,28 @@
                 </button>
 
                 <div class="flex items-center gap-2">
+                    <!-- Tasto Modifica (visibile solo se il foglio è in modalità sola lettura/Visualizza) -->
+                    <button type="button" id="btn-unlock-sheet" onclick="openUnlockSheetModal()"
+                        class="hidden bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition cursor-pointer border border-blue-200">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                            </path>
+                        </svg>
+                        <span>Modifica</span>
+                    </button>
+
                     <button type="button" onclick="exportToExcel()"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition">
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                         </svg>
-                        Excel
+                        <span>Excel</span>
                     </button>
                     <button type="button" onclick="deleteCurrentSheet()"
-                        class="text-xs text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition" title="Elimina foglio">
+                        class="text-xs text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition cursor-pointer"
+                        title="Elimina foglio">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
@@ -297,6 +312,124 @@
                 <p class="text-[11px] sm:text-xs italic text-gray-500 pt-4 border-t border-gray-100 leading-relaxed">
                     Il surplus visualizzato è la cifra esatta che andrà a risparmio.
                 </p>
+            </div>
+        </main>
+
+        <!-- ======================================================= -->
+        <!-- 4.1 SCHERMATA RENDICONTO FINALE                         -->
+        <!-- ======================================================= -->
+        <main id="view-rendiconto" class="hidden space-y-5">
+            <!-- Barra superiore con Back e Azioni -->
+            <div class="flex items-center justify-between bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+                <button type="button" onclick="backToDashboard()"
+                    class="text-xs font-semibold text-gray-600 hover:text-gray-900 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    I miei fogli
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <!-- Tasto PDF con download formattato A4 in rosso satinato -->
+                    <button type="button" onclick="exportRendicontoToPDF()"
+                        class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        <span>PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scheda Rendiconto Grafica (con ID rendiconto-card-printable per l'export) -->
+            <div id="rendiconto-card-printable"
+                class="bg-white rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 space-y-6">
+
+                <!-- Header Rendiconto con Titolo e Date Apertura / Chiusura -->
+                <div
+                    class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg font-bold text-gray-800" id="rendiconto-sheet-title">Rendiconto Mese</h2>
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800">
+                                Bilancio Chiuso
+                            </span>
+                        </div>
+                        <!-- Date di Apertura e Chiusura -->
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mt-1.5">
+                            <span>Apertura (accredito): <strong id="rendiconto-date-start"
+                                    class="text-gray-700">--/--/----</strong></span>
+                            <span>•</span>
+                            <span>Chiusura: <strong id="rendiconto-date-end"
+                                    class="text-gray-700">--/--/----</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Card Risparmio & Verdetto -->
+                <div
+                    class="bg-[#f8f9fa] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border border-gray-100">
+                    <div class="text-center sm:text-left space-y-1">
+                        <div class="text-xs text-gray-500 font-medium">Risparmio Netto Accantonato</div>
+                        <div class="text-2xl sm:text-3xl font-extrabold text-emerald-600" id="rendiconto-hero-savings">
+                            €0</div>
+                        <div class="text-xs text-gray-500">
+                            Entrate: <strong class="text-gray-700" id="rendiconto-hero-income">€0</strong> |
+                            Spese: <strong class="text-gray-700" id="rendiconto-hero-expenses">€0</strong>
+                        </div>
+                    </div>
+                    <div class="text-center sm:text-right">
+                        <div class="inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100"
+                            id="rendiconto-badge-quote">
+                            Modalità Cassaforte 🛡️
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grafico a Torta Categorie -->
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Ripartizione Spese (Grafico)
+                    </h3>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-6 pt-2">
+                        <div class="w-44 h-44 relative shrink-0">
+                            <canvas id="rendicontoPieChart"></canvas>
+                        </div>
+                        <div class="space-y-2 text-xs w-full max-w-[220px]" id="rendiconto-legend">
+                            <!-- Popolato da JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top 3 Voci di Spesa più pesanti -->
+                <div class="space-y-3 pt-2 border-t border-gray-100">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Le Voci più Rilevanti</h3>
+                    <div class="space-y-2" id="rendiconto-top-items">
+                        <!-- Popolato da JS -->
+                    </div>
+                </div>
+
+                <!-- Box Feedback Serio + Amichevole -->
+                <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs space-y-1 text-amber-900"
+                    id="rendiconto-feedback-box">
+                    <div class="font-bold flex items-center gap-1.5" id="rendiconto-feedback-title">
+                        <span>💡</span> <span>Valutazione del Mese</span>
+                    </div>
+                    <p class="leading-relaxed text-amber-800/90" id="rendiconto-feedback-text">
+                        Analisi in corso...
+                    </p>
+                </div>
+
+                <!-- Footer invisibile nell'app, mostrato ESCLUSIVAMENTE nel PDF scaricato -->
+                <div id="pdf-exclusive-footer"
+                    class="hidden pt-6 mt-4 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+                    <span class="text-gray-600 font-bold tracking-tight">saveMoney</span>
+                    <span id="pdf-footer-timestamp" class="text-gray-500 font-medium"></span>
+                </div>
+
             </div>
         </main>
 
@@ -502,7 +635,70 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- MODALE CONFERMA CHIUSURA E GENERAZIONE RENDICONTO -->
+    <div id="modal-confirm-lock"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl">
+            <div class="w-12 h-12 bg-sky-100 text-sky-700 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-gray-800">Chiudere il mese e generare il Rendiconto?</h3>
+                <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                    Confermando, il foglio passerà in sola lettura ("Visualizza") per congelare il bilancio finale.
+                    Potrai comunque riaprirlo in qualsiasi momento.
+                </p>
+            </div>
+            <div class="flex items-center justify-center gap-2 pt-1">
+                <button type="button" onclick="closeConfirmLockModal()"
+                    class="w-1/2 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer">
+                    Annulla
+                </button>
+                <button type="button" onclick="executeConfirmLockAndRendiconto()"
+                    class="w-1/2 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 active:scale-95 rounded-xl transition shadow-xs cursor-pointer">
+                    Conferma
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE CONFERMA SBLOCCO MODIFICHE FOGLIO -->
+    <div id="modal-confirm-unlock"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl">
+            <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z">
+                    </path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-gray-800">Riaprire le modifiche al foglio?</h3>
+                <p class="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                    Il foglio tornerà modificabile e il rendiconto precedente verrà azzerato. Dovrai generare un nuovo
+                    rendiconto al termine delle modifiche.
+                </p>
+            </div>
+            <div class="flex items-center justify-center gap-2 pt-1">
+                <button type="button" onclick="closeUnlockSheetModal()"
+                    class="w-1/2 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer">
+                    Annulla
+                </button>
+                <button type="button" onclick="executeUnlockSheet()"
+                    class="w-1/2 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl transition shadow-xs cursor-pointer">
+                    Riapri Modifiche
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script applicazione con parametro cache-busting -->
+    <script src="app.js?v=3.0"></script>
 </body>
 
 </html>

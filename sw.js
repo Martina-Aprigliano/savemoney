@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savemoney-v2';
+const CACHE_NAME = 'savemoney-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
