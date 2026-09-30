@@ -444,43 +444,44 @@ function renderDashboard() {
         const netSavings = income - totalExpenses;
 
         const card = document.createElement("div");
-        card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 space-y-2.5 hover:border-emerald-300 transition group";
+        card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center justify-between gap-2 hover:border-emerald-300 transition group";
         card.innerHTML = `
-      <!-- Riga Superiore: Nome + Accredito a sinistra, Matita + Apri a destra -->
-      <div class="flex items-center justify-between gap-2">
-        <div class="min-w-0">
-          <div class="text-sm font-bold text-gray-800 truncate" title="${sheet.name}">
+      <!-- Sezione Sinistra: Nome, Accredito e Riga Importi tutta dritta -->
+      <div class="space-y-1.5 min-w-0 flex-1">
+        <div>
+          <div class="text-sm font-bold text-gray-800 truncate leading-tight" title="${sheet.name}">
             ${sheet.name}
           </div>
-          <div class="mt-0.5">
+          <div class="mt-1">
             <span class="inline-block text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium whitespace-nowrap">
               Accredito: ${sheet.salaryDate}
             </span>
           </div>
         </div>
 
-        <div class="flex items-center gap-1 shrink-0">
-          <!-- Matita senza sfondo -->
-          <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-          </button>
-
-          <!-- Tasto Apri -->
-          <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0 whitespace-nowrap">
-            Apri
-            <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-          </button>
+        <!-- Riga Cifre: tutta su una linea orizzontale senza andare a capo -->
+        <div class="text-[11px] text-gray-500 flex items-center gap-2 whitespace-nowrap pt-0.5">
+          <span>Stipendio: <strong class="text-gray-700 font-semibold">€${income}</strong></span>
+          <span>Spese: <strong class="text-gray-700 font-semibold">€${totalExpenses}</strong></span>
+          <span>Risparmio: <strong class="text-emerald-600 font-semibold">€${netSavings}</strong></span>
         </div>
       </div>
 
-      <!-- Riga Inferiore: Tutto su una sola riga perfettamente dritta -->
-      <div class="text-[11px] sm:text-xs text-gray-500 flex items-center gap-3 pt-1 border-t border-gray-50 whitespace-nowrap overflow-x-hidden">
-        <span>Stipendio: <strong class="text-gray-700 font-semibold">€${income}</strong></span>
-        <span>Spese: <strong class="text-gray-700 font-semibold">€${totalExpenses}</strong></span>
-        <span>Risparmio: <strong class="text-emerald-600 font-semibold">€${netSavings}</strong></span>
+      <!-- Sezione Destra: Matita e Tasto Apri affiancati e centrati -->
+      <div class="flex items-center gap-1 shrink-0 self-center">
+        <!-- Matita senza sfondo: pulita e azzurra -->
+        <button onclick="openEditSheetModal('${sheet.id}')" class="p-1.5 text-blue-600 hover:text-blue-800 transition active:scale-95 flex items-center justify-center shrink-0" title="Modifica dati foglio">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </button>
+
+        <!-- Tasto Apri -->
+        <button onclick="openSheet('${sheet.id}')" class="flex items-center gap-1 text-xs font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl group-hover:bg-emerald-100/70 transition shrink-0 whitespace-nowrap">
+          Apri
+          <svg class="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
       </div>
     `;
         container.appendChild(card);
