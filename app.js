@@ -570,7 +570,7 @@ function renderDashboard() {
           </div>
         </div>
 
-        <div class="text-[9px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
+        <div class="text-[7px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
           <span>Stipendio: <strong class="text-gray-600 font-semibold">€${income}</strong></span>
           <span>Spese: <strong class="text-gray-600 font-semibold">€${totalExpenses}</strong></span>
           <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-500' : 'text-emerald-600'} font-semibold">€${netSavings}</strong></span>
@@ -1284,9 +1284,24 @@ function executeDeleteCurrentSheet() {
         return;
     }
 
+    // Rimuove il foglio corrente
     state.data[currentUser].sheets = state.data[currentUser].sheets.filter(s => s.id !== activeSheet.id);
-    saveState();
 
+    // CONTROLLO DI SICUREZZA POST-ELIMINAZIONE:
+    const remainingSheets = state.data[currentUser].sheets;
+    if (remainingSheets.length > 0) {
+        const latestDate = remainingSheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
+        remainingSheets.forEach(sheet => {
+            const hasNextSheet = sheet.salaryDate < latestDate;
+            // Se il foglio non ha più fogli successivi, DEVE essere sbloccato
+            if (!hasNextSheet) {
+                sheet.isLocked = false;
+                delete sheet.closedDate;
+            }
+        });
+    }
+
+    saveState();
     closeDeleteSheetModal();
     backToDashboard();
 }
