@@ -1159,7 +1159,10 @@ function renderRendicontoView() {
 function handleIncomeChange(val) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    activeSheet.income = round2(val);
+    
+    // Converte la virgola in punto per il calcolo matematico
+    const normalizedVal = String(val).replace(',', '.');
+    activeSheet.income = round2(normalizedVal);
     saveState();
     renderSheetDetail();
 }
@@ -1284,16 +1287,17 @@ function executeDeleteCurrentSheet() {
         return;
     }
 
-    // Rimuove il foglio corrente
+    // Rimuove il foglio corrente dalla lista
     state.data[currentUser].sheets = state.data[currentUser].sheets.filter(s => s.id !== activeSheet.id);
 
     // CONTROLLO DI SICUREZZA POST-ELIMINAZIONE:
+    // Troviamo il nuovo foglio più recente rimasto nell'elenco
     const remainingSheets = state.data[currentUser].sheets;
     if (remainingSheets.length > 0) {
         const latestDate = remainingSheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
         remainingSheets.forEach(sheet => {
             const hasNextSheet = sheet.salaryDate < latestDate;
-            // Se il foglio non ha più fogli successivi, DEVE essere sbloccato
+            // Se questo foglio non ha più fogli successivi, DEVE tassativamente essere sbloccato
             if (!hasNextSheet) {
                 sheet.isLocked = false;
                 delete sheet.closedDate;
