@@ -570,7 +570,7 @@ function renderDashboard() {
           </div>
         </div>
 
-        <div class="text-[7px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
+        <div class="text-[8px] text-gray-400 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
           <span>Stipendio: <strong class="text-gray-600 font-semibold">€${income}</strong></span>
           <span>Spese: <strong class="text-gray-600 font-semibold">€${totalExpenses}</strong></span>
           <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-500' : 'text-emerald-600'} font-semibold">€${netSavings}</strong></span>
