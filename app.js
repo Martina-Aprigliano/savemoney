@@ -8,7 +8,7 @@ if (window.supabase) {
 }
 
 // --- STATO GLOBALE DELL'APPLICAZIONE ---
-const STORAGE_KEY = "savemoney_app_v3";
+const STORAGE_KEY = "savemoney_app_v4";
 
 let currentUser = null;
 let currentSheetId = null;
@@ -102,6 +102,35 @@ function getLatestSheetDate() {
     return dates[dates.length - 1] || null;
 }
 
+// --- GESTIONE TEMA DARK / LIGHT ---
+const THEME_KEY = "savemoney_theme";
+
+function applyTheme(isDark) {
+    if (isDark) {
+        document.documentElement.classList.add("dark");
+        document.body.classList.add("bg-gray-900", "text-gray-100");
+        document.body.classList.remove("bg-[#f8f9fa]", "text-gray-800");
+    } else {
+        document.documentElement.classList.remove("dark");
+        document.body.classList.remove("bg-gray-900", "text-gray-100");
+        document.body.classList.add("bg-[#f8f9fa]", "text-gray-800");
+    }
+}
+
+function toggleDarkMode() {
+    const isDark = document.documentElement.classList.contains("dark");
+    const nextDark = !isDark;
+    applyTheme(nextDark);
+    localStorage.setItem(THEME_KEY, nextDark ? "dark" : "light");
+}
+
+function initTheme() {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme ? (savedTheme === "dark") : prefersDark;
+    applyTheme(isDark);
+}
+
 // --- MODALE AVVISO DATA DUPLICATA ---
 function showDuplicateWarning(onConfirm) {
     pendingDuplicateAction = onConfirm;
@@ -125,6 +154,8 @@ function proceedDuplicateDateWarning() {
 
 // --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
 async function initApp() {
+    initTheme(); // Inizializza subito il tema salvato all'avvio[cite: 10]
+    
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
         try {
@@ -235,7 +266,7 @@ function renderAuthUsers() {
     state.users.forEach(userName => {
         const initial = userName.trim().charAt(0).toUpperCase() || "U";
         const card = document.createElement("div");
-        card.className = "p-4 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 bg-gray-50 hover:bg-emerald-50/40 text-center transition-all group relative flex flex-col justify-between";
+        card.className = "p-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700 hover:border-emerald-500 bg-gray-50 dark:bg-gray-700 hover:bg-emerald-50/40 dark:hover:bg-gray-600 text-center transition-all group relative flex flex-col justify-between";
 
         card.innerHTML = `
       <button onclick="editUserProfile('${userName}', event)" class="absolute top-2.5 left-2.5 p-1 text-gray-400 hover:text-blue-600 active:scale-95 transition rounded z-10 cursor-pointer" title="Modifica nome o PIN">
@@ -252,23 +283,23 @@ function renderAuthUsers() {
       </button>
 
       <div onclick="requestPinAuth('${userName}')" class="cursor-pointer pt-3">
-        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-105 transition-transform text-emerald-600 font-bold text-lg">
+        <div class="w-12 h-12 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-2 shadow-xs group-hover:scale-105 transition-transform text-emerald-600 dark:text-emerald-400 font-bold text-lg">
           ${initial}
         </div>
-        <span class="text-sm font-semibold text-gray-800 truncate block">${userName}</span>
+        <span class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate block">${userName}</span>
       </div>
     `;
         grid.appendChild(card);
     });
 
     const addCard = document.createElement("div");
-    addCard.className = "p-4 min-h-[110px] rounded-2xl border-2 border-dashed border-gray-200 hover:border-emerald-400 bg-white hover:bg-gray-50 text-center transition-all cursor-pointer flex flex-col items-center justify-center group";
+    addCard.className = "p-4 min-h-[110px] rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-emerald-400 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-center transition-all cursor-pointer flex flex-col items-center justify-center group";
     addCard.onclick = promptAddNewUser;
     addCard.innerHTML = `
-    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-2 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
+    <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-2 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
     </div>
-    <span class="text-xs font-semibold text-gray-600 group-hover:text-emerald-700">Aggiungi</span>
+    <span class="text-xs font-semibold text-gray-600 dark:text-gray-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">Aggiungi</span>
   `;
     grid.appendChild(addCard);
 }
@@ -402,7 +433,7 @@ function updatePinDots() {
         if (i < enteredPin.length) {
             dot.className = "w-3.5 h-3.5 rounded-full bg-emerald-600 border-2 border-emerald-600 scale-110 transition-all";
         } else {
-            dot.className = "w-3.5 h-3.5 rounded-full border-2 border-gray-300 transition-all";
+            dot.className = "w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-600 transition-all";
         }
     }
 }
@@ -530,8 +561,8 @@ function renderDashboard() {
 
     if (sheets.length === 0) {
         container.innerHTML = `
-      <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-gray-200">
-        <p class="text-xs text-gray-500">Non hai ancora nessun foglio creato per questo profilo.</p>
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-dashed border-gray-200 dark:border-gray-700">
+        <p class="text-xs text-gray-500 dark:text-gray-400">Non hai ancora nessun foglio creato per questo profilo.</p>
         <button onclick="openNewSheetModal()" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
           Crea il tuo primo foglio
         </button>
@@ -555,25 +586,25 @@ function renderDashboard() {
         const isLocked = Boolean(sheet.isLocked) && hasNextSheet;
 
         const card = document.createElement("div");
-        card.className = "bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center justify-between gap-2 hover:border-emerald-300 transition group";
+        card.className = "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xs border border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2 hover:border-emerald-300 dark:hover:border-emerald-600 transition group";
         card.innerHTML = `
       <!-- Dati del foglio a sinistra -->
       <div class="space-y-1.5 min-w-0 flex-1">
         <div>
-          <div class="text-sm font-bold text-gray-800 truncate leading-tight" title="${sheet.name}">
+          <div class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate leading-tight" title="${sheet.name}">
             ${sheet.name}
           </div>
           <div class="mt-1">
-            <span class="inline-block text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-medium whitespace-nowrap">
+            <span class="inline-block text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md font-medium whitespace-nowrap">
               Accredito: ${sheet.salaryDate}
             </span>
           </div>
         </div>
 
-        <div class="text-[8px] text-gray-700 flex items-center gap-2 whitespace-nowrap pt-0.5 leading-none">
-          <span>Stipendio: <strong class="text-gray-700 font-semibold">€${income}</strong></span>
-          <span>Spese: <strong class="text-gray-700 font-semibold">€${totalExpenses}</strong></span>
-          <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-500' : 'text-emerald-600'} font-semibold">€${netSavings}</strong></span>
+        <div class="text-[8px] text-gray-600 dark:text-gray-400 flex items-center gap-3 pt-1 whitespace-nowrap overflow-hidden">
+          <span>Stipendio: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${income}</strong></span>
+          <span>Spese: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${totalExpenses}</strong></span>
+          <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'} font-bold">€${netSavings}</strong></span>
         </div>
       </div>
 
@@ -593,7 +624,7 @@ function renderDashboard() {
         <div class="flex flex-col gap-1.5 items-stretch w-[88px]">
           <!-- 1. Apri / Visualizza -->
           <button onclick="openSheet('${sheet.id}')" 
-            class="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 group-hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/70 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer">
+            class="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 hover:bg-emerald-100/70 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer">
             <span>${isLocked ? 'Visualizza' : 'Apri'}</span>
             <svg class="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -604,8 +635,8 @@ function renderDashboard() {
           <button ${isRendicontoActive ? `onclick="openRendiconto('${sheet.id}')"` : 'disabled'} 
             class="w-full flex items-center justify-center text-[10px] font-bold py-1 rounded-xl transition whitespace-nowrap ${
               isRendicontoActive 
-                ? 'bg-sky-100 hover:bg-sky-200 text-sky-800 cursor-pointer active:scale-95' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed select-none'
+                ? 'bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 text-sky-800 dark:text-sky-300 cursor-pointer active:scale-95' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none'
             }">
             <span>Rendiconto</span>
           </button>
@@ -913,17 +944,17 @@ function renderCategories(activeSheet, totalExpenses) {
         const catPct = totalExpenses > 0 ? Math.round((catSum / totalExpenses) * 100) : 0;
 
         const catDiv = document.createElement("div");
-        catDiv.className = "border-t border-gray-100 pt-4";
+        catDiv.className = "border-t border-gray-100 dark:border-gray-700 pt-4";
         catDiv.innerHTML = `
       <div class="flex items-center justify-between cursor-pointer mb-3 select-none" onclick="toggleCategoryCollapse(${catIndex})">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full ${cat.badgeClass}"></span>
-          <span class="text-sm font-semibold text-gray-800">${cat.title}</span>
+          <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${cat.title}</span>
         </div>
         <div class="flex items-center gap-3 text-xs sm:text-sm">
-          <span class="text-gray-500 font-medium">${catPct}%</span>
-          <span class="font-bold text-gray-800">€${catSum}</span>
-          <svg class="w-4 h-4 text-gray-500 transform transition-transform ${cat.collapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span class="text-gray-500 dark:text-gray-400 font-medium">${catPct}%</span>
+          <span class="font-bold text-gray-800 dark:text-gray-100">€${catSum}</span>
+          <svg class="w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${cat.collapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
         </div>
@@ -934,7 +965,7 @@ function renderCategories(activeSheet, totalExpenses) {
         </div>
 
         ${!isLocked ? `
-        <button onclick="promptAddNewItem(${catIndex})" class="mt-2 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer">
+        <button onclick="promptAddNewItem(${catIndex})" class="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 cursor-pointer">
           <svg class="w-3.5 h-3.5 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
           Aggiungi voce a questa sezione
         </button>` : ''}
@@ -952,7 +983,7 @@ function renderCategories(activeSheet, totalExpenses) {
             const row = document.createElement("div");
             row.className = "space-y-1.5";
             row.innerHTML = `
-        <div class="flex items-center justify-between text-xs text-gray-700">
+        <div class="flex items-center justify-between text-xs text-gray-700 dark:text-gray-300">
           <span class="truncate max-w-[180px] font-medium" title="${item.name}">${item.name}</span>
           
           ${!isLocked ? `
@@ -979,18 +1010,17 @@ function renderCategories(activeSheet, totalExpenses) {
             class="custom-slider pointer-events-none select-none opacity-85"
           >
           
-          <div class="flex items-center h-[42px] ${isLocked ? 'bg-gray-100/70 border-gray-200' : 'bg-[#f1f3f4] border-transparent'} rounded-xl px-3 py-2.5 min-w-[95px] max-w-[120px] justify-between border focus-within:border-emerald-500 focus-within:bg-white transition-all shadow-2xs">
-            <span class="text-xs text-gray-400 font-semibold mr-1 select-none">€</span>
+          <div class="flex items-center h-[42px] ${isLocked ? 'bg-gray-100/70 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700' : 'bg-[#f1f3f4] dark:bg-gray-700 border-transparent'} rounded-xl px-3 py-2.5 min-w-[95px] max-w-[120px] justify-between border focus-within:border-emerald-500 focus-within:bg-white dark:focus-within:bg-gray-800 transition-all shadow-2xs">
+            <span class="text-xs text-gray-400 dark:text-gray-400 font-semibold mr-1 select-none">€</span>
             <input 
-              type="number" 
-              step="any"
+              type="text" 
               inputmode="decimal"
               placeholder="0"
               value="${displayVal}" 
               ${isLocked ? 'disabled' : ''}
               onfocus="this.select()"
               onchange="updateItemValue(${catIndex}, ${itemIndex}, this.value)" 
-              class="w-full bg-transparent text-right text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-400 placeholder:font-normal leading-normal ${isLocked ? 'cursor-not-allowed text-gray-600' : ''}"
+              class="w-full bg-transparent text-right text-sm font-bold text-gray-800 dark:text-gray-100 focus:outline-none placeholder:text-gray-400 placeholder:font-normal leading-normal ${isLocked ? 'cursor-not-allowed text-gray-600 dark:text-gray-400' : ''}"
             >
           </div>
         </div>
@@ -1053,27 +1083,27 @@ function renderRendicontoView() {
 
     if (savingsRatio >= 25) {
         badge.textContent = `Modalità Cassaforte: ${savingsRatio}% 🛡️`;
-        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200";
-        fBox.className = "p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/70 text-xs space-y-1 text-emerald-900";
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800";
+        fBox.className = "p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-900/20 border border-emerald-200/70 dark:border-emerald-800 text-xs space-y-1 text-emerald-900 dark:text-emerald-200";
         fTitle.innerHTML = "<span>🏆</span> <span>Ottima disciplina finanziaria!</span>";
         fText.textContent = `Hai accantonato il ${savingsRatio}% del tuo stipendio (€${formatCurrency(netSavings)}). Ottima gestione del budget, con uscite controllate e risparmio prioritario.`;
     } else if (savingsRatio >= 10) {
         badge.textContent = `In perfetto equilibrio: ${savingsRatio}% ⚖️`;
-        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200";
-        fBox.className = "p-4 rounded-2xl bg-sky-50/60 border border-sky-200/70 text-xs space-y-1 text-sky-900";
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800";
+        fBox.className = "p-4 rounded-2xl bg-sky-50/60 dark:bg-sky-900/20 border border-sky-200/70 dark:border-sky-800 text-xs space-y-1 text-sky-900 dark:text-sky-200";
         fTitle.innerHTML = "<span>⚖️</span> <span>Mese in ottimo equilibrio</span>";
         fText.textContent = `Hai chiuso con un risparmio del ${savingsRatio}% (€${formatCurrency(netSavings)}). Tutte le uscite sono state sostenute senza sforare il capitale disponibile.`;
     } else if (savingsRatio >= 0) {
         badge.textContent = `Mese tirato: ${savingsRatio}% 🧗`;
-        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200";
-        fBox.className = "p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs space-y-1 text-amber-900";
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800";
+        fBox.className = "p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-900/20 border border-amber-200/70 dark:border-amber-800 text-xs space-y-1 text-amber-900 dark:text-amber-200";
         fTitle.innerHTML = "<span>⚠️</span> <span>Mese tirato ma in pari</span>";
         fText.textContent = `Hai terminato con un margine residuo di €${formatCurrency(netSavings)} (${savingsRatio}%). Le spese hanno assorbito gran parte del budget; monitora le voci spot per il prossimo ciclo.`;
     } else {
         const deficit = formatCurrency(Math.abs(netSavings));
         badge.textContent = `Spese oltre lo stipendio: ${savingsRatio}% 🚨`;
-        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-red-100 text-red-800 border border-red-200";
-        fBox.className = "p-4 rounded-2xl bg-red-50/70 border border-red-200 text-xs space-y-1 text-red-900";
+        badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800";
+        fBox.className = "p-4 rounded-2xl bg-red-50/70 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs space-y-1 text-red-900 dark:text-red-200";
         fTitle.innerHTML = "<span>🚨</span> <span>Uscite superiori allo stipendio</span>";
         fText.textContent = `Questo mese hai speso €${deficit} in più rispetto allo stipendio accreditato. Il disavanzo è stato coperto da risparmi precedenti; per il prossimo ciclo riduci le spese variabili per tornare in attivo.`;
     }
@@ -1091,7 +1121,7 @@ function renderRendicontoView() {
                     data: catAmounts.every(v => v === 0) ? [1] : catAmounts,
                     backgroundColor: catAmounts.every(v => v === 0) ? ["#e5e7eb"] : catColors,
                     borderWidth: 2,
-                    borderColor: "#ffffff"
+                    borderColor: document.documentElement.classList.contains('dark') ? "#1f2937" : "#ffffff"
                 }]
             },
             options: {
@@ -1122,9 +1152,9 @@ function renderRendicontoView() {
         row.innerHTML = `
             <div class="flex items-center gap-1.5">
                 <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${cat.color};"></span>
-                <span class="text-gray-700 font-medium">${cat.title}</span>
+                <span class="text-gray-700 dark:text-gray-300 font-medium">${cat.title}</span>
             </div>
-            <span class="font-bold text-gray-800">€${sum} (${pct}%)</span>
+            <span class="font-bold text-gray-800 dark:text-gray-100">€${sum} (${pct}%)</span>
         `;
         legContainer.appendChild(row);
     });
@@ -1140,16 +1170,16 @@ function renderRendicontoView() {
         top3.forEach((item, index) => {
             const medals = ["🥇", "🥈", "🥉"];
             const div = document.createElement("div");
-            div.className = "flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100 text-xs";
+            div.className = "flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 text-xs";
             div.innerHTML = `
                 <div class="flex items-center gap-2">
                     <span class="text-base leading-none">${medals[index]}</span>
                     <div>
-                        <span class="font-semibold text-gray-800">${item.name}</span>
+                        <span class="font-semibold text-gray-800 dark:text-gray-200">${item.name}</span>
                         <span class="text-[10px] text-gray-400 block">${item.category}</span>
                     </div>
                 </div>
-                <span class="font-bold text-gray-900">€${item.value}</span>
+                <span class="font-bold text-gray-900 dark:text-gray-100">€${item.value}</span>
             `;
             topContainer.appendChild(div);
         });
@@ -1170,7 +1200,8 @@ function handleIncomeChange(val) {
 function updateItemValue(catIndex, itemIndex, val) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    activeSheet.categories[catIndex].items[itemIndex].value = round2(val);
+    const normalizedVal = String(val).replace(',', '.');
+    activeSheet.categories[catIndex].items[itemIndex].value = round2(normalizedVal);
     saveState();
     renderSheetDetail();
 }
@@ -1395,7 +1426,6 @@ async function exportRendicontoToPDF() {
         console.error("Errore generazione PDF:", err);
         alert("Si è verificato un errore durante la creazione del PDF.");
     } finally {
-        // Nasconde nuovamente il footer a video
         if (footerEl) {
             footerEl.classList.add("hidden");
         }
