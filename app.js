@@ -131,6 +131,31 @@ function initTheme() {
     applyTheme(isDark);
 }
 
+// --- GESTIONE MENU LATERALE (DRAWER) ---
+function toggleSidebar() {
+    const sidebar = document.getElementById("app-sidebar");
+    const panel = document.getElementById("sidebar-panel");
+    const overlay = document.getElementById("sidebar-overlay");
+
+    if (!sidebar || !panel || !overlay) return;
+
+    const isHidden = sidebar.classList.contains("hidden");
+
+    if (isHidden) {
+        sidebar.classList.remove("hidden");
+        setTimeout(() => {
+            panel.classList.remove("-translate-x-full");
+            overlay.classList.remove("opacity-0");
+        }, 10);
+    } else {
+        panel.classList.add("-translate-x-full");
+        overlay.classList.add("opacity-0");
+        setTimeout(() => {
+            sidebar.classList.add("hidden");
+        }, 300);
+    }
+}
+
 // --- MODALE AVVISO DATA DUPLICATA ---
 function showDuplicateWarning(onConfirm) {
     pendingDuplicateAction = onConfirm;
