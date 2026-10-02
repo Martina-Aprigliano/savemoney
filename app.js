@@ -586,61 +586,59 @@ function renderDashboard() {
         const isLocked = Boolean(sheet.isLocked) && hasNextSheet;
 
         const card = document.createElement("div");
-        card.className = "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xs border border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2 hover:border-emerald-300 dark:hover:border-emerald-600 transition group";
+        card.className = "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xs border border-gray-100 dark:border-gray-700 space-y-3 hover:border-emerald-300 dark:hover:border-emerald-600 transition group";
         card.innerHTML = `
-      <!-- Dati del foglio a sinistra -->
-      <div class="space-y-1.5 min-w-0 flex-1">
-        <div>
+      <!-- TOP: Titolo e Data a sinistra, Matita e Bottoni Azione a destra -->
+      <div class="flex items-start justify-between gap-2">
+        <div class="space-y-1 min-w-0 flex-1">
           <div class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate leading-tight" title="${sheet.name}">
             ${sheet.name}
           </div>
-          <div class="mt-1">
+          <div>
             <span class="inline-block text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-md font-medium whitespace-nowrap">
               Accredito: ${sheet.salaryDate}
             </span>
           </div>
         </div>
 
-        <div class="text-[8px] text-gray-600 dark:text-gray-400 flex items-center gap-3 pt-1 whitespace-nowrap overflow-hidden">
-          <span>Stipendio: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${income}</strong></span>
-          <span>Spese: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${totalExpenses}</strong></span>
-          <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'} font-bold">€${netSavings}</strong></span>
-        </div>
-      </div>
-
-      <!-- Sezione Azioni a destra -->
-      <div class="flex items-center gap-2 shrink-0 self-center">
-        <!-- Matita a sinistra -->
-        <button onclick="openEditSheetModal('${sheet.id}')" 
-          class="p-1.5 text-gray-400 hover:text-blue-600 transition active:scale-95 flex items-center justify-center shrink-0 cursor-pointer" 
-          title="Modifica dati foglio">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-          </svg>
-        </button>
-
-        <!-- Colonna Bottoni -->
-        <div class="flex flex-col gap-1.5 items-stretch w-[88px]">
-          <!-- 1. Apri / Visualizza -->
-          <button onclick="openSheet('${sheet.id}')" 
-            class="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 hover:bg-emerald-100/70 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer">
-            <span>${isLocked ? 'Visualizza' : 'Apri'}</span>
-            <svg class="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Matita -->
+          <button onclick="openEditSheetModal('${sheet.id}')" 
+            class="p-1.5 text-gray-400 hover:text-blue-600 transition active:scale-95 flex items-center justify-center cursor-pointer" 
+            title="Modifica dati foglio">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
             </svg>
           </button>
 
-          <!-- 2. Rendiconto -->
-          <button ${isRendicontoActive ? `onclick="openRendiconto('${sheet.id}')"` : 'disabled'} 
-            class="w-full flex items-center justify-center text-[10px] font-bold py-1 rounded-xl transition whitespace-nowrap ${
-              isRendicontoActive 
-                ? 'bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 text-sky-800 dark:text-sky-300 cursor-pointer active:scale-95' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none'
-            }">
-            <span>Rendiconto</span>
-          </button>
+          <!-- Colonna Bottoni (Apri/Visualizza + Rendiconto) -->
+          <div class="flex flex-col gap-1.5 items-stretch w-[88px]">
+            <button onclick="openSheet('${sheet.id}')" 
+              class="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 hover:bg-emerald-100/70 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer">
+              <span>${isLocked ? 'Visualizza' : 'Apri'}</span>
+              <svg class="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+
+            <button ${isRendicontoActive ? `onclick="openRendiconto('${sheet.id}')"` : 'disabled'} 
+              class="w-full flex items-center justify-center text-[10px] font-bold py-1 rounded-xl transition whitespace-nowrap ${
+                isRendicontoActive 
+                  ? 'bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 text-sky-800 dark:text-sky-300 cursor-pointer active:scale-95' 
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none'
+              }">
+              <span>Rendiconto</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- BOTTOM: Riga dati che occupa tutta la larghezza -->
+      <div class="text-[10px] text-gray-600 dark:text-gray-400 flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700 whitespace-nowrap">
+        <span>Stipendio: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${income}</strong></span>
+        <span>Spese: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${totalExpenses}</strong></span>
+        <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'} font-bold">€${netSavings}</strong></span>
       </div>
     `;
         container.appendChild(card);
