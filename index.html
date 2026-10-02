@@ -505,11 +505,193 @@
             </div>
         </main>
 
+        <!-- ======================================================= -->
+        <!-- 4.2 SCHERMATA CALENDARIO SPESE GIORNALIERE              -->
+        <!-- ======================================================= -->
+        <main id="view-calendar" class="hidden space-y-5">
+            <!-- Barra superiore con Back e Lampadina -->
+            <div
+                class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="backToDashboard()"
+                    class="text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    I miei fogli
+                </button>
+
+                <div class="text-xs font-bold text-gray-800 dark:text-gray-100" id="calendar-sheet-title-indicator">
+                    Calendario Spese</div>
+
+                <!-- Lampadina -->
+                <button type="button" onclick="toggleDarkMode()"
+                    class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                    title="Cambia tema">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Card Inserimento Spesa Giornaliera -->
+            <div
+                class="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span>📅</span> <span>Aggiungi Spesa al Calendario</span>
+                    </div>
+                    <button type="button" onclick="openSelectCalendarSheetModal()"
+                        class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer">
+                        Cambia foglio
+                    </button>
+                </h3>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Data
+                            spesa</label>
+                        <input type="text" id="calendar-expense-date" readonly placeholder="Seleziona data..."
+                            class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none min-h-[42px] cursor-pointer">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Descrizione</label>
+                        <input type="text" id="calendar-expense-name" maxlength="35"
+                            placeholder="Es. Spesa al supermercato, Caffè..."
+                            class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Importo
+                                (€)</label>
+                            <input type="text" inputmode="decimal" id="calendar-expense-value" placeholder="0.00"
+                                class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Voce di
+                                spesa collegata</label>
+                            <select id="calendar-expense-item"
+                                class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none min-h-[42px]">
+                                <!-- Popolato dinamicamente da JS con le voci specifiche del foglio selezionato -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" onclick="confirmAddCalendarExpense()"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-xl transition shadow-sm cursor-pointer">
+                    Registra Spesa
+                </button>
+            </div>
+
+            <!-- Elenco Spese del Mese Ordinate -->
+            <div
+                class="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Storico Spese del Mese</h3>
+                <div class="space-y-2.5" id="calendar-expenses-list">
+                    <!-- Popolato da JS -->
+                </div>
+            </div>
+        </main>
+
+        <!-- ======================================================= -->
+        <!-- 4.3 SCHERMATA TRACKER SPESE & BUDGET (BUDGET VS REALE)  -->
+        <!-- ======================================================= -->
+        <main id="view-tracker" class="hidden space-y-5">
+            <!-- Barra superiore con Back e Lampadina -->
+            <div
+                class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="backToDashboard()"
+                    class="text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    I miei fogli
+                </button>
+
+                <div class="text-xs font-bold text-gray-800 dark:text-gray-100" id="tracker-sheet-title-indicator">
+                    Tracker & Residui</div>
+
+                <!-- Lampadina -->
+                <button type="button" onclick="toggleDarkMode()"
+                    class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
+                    title="Cambia tema">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Card Selezione Foglio Tracker -->
+            <div
+                class="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Foglio Monitorato</span>
+                <select id="tracker-sheet-selector" onchange="onTrackerSheetChange(this.value)"
+                    class="border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer">
+                    <!-- Popolato via JS -->
+                </select>
+            </div>
+
+            <!-- Hero Card Riepilogo Open-to-Spend -->
+            <div id="tracker-hero-card"
+                class="bg-emerald-600 text-white rounded-3xl p-6 shadow-md space-y-2 transition-colors">
+                <div class="text-xs font-medium opacity-90 uppercase tracking-wider">Open-to-Spend (Residuo Totale)
+                </div>
+                <div class="text-3xl font-extrabold" id="tracker-hero-residuo">€0</div>
+                <div class="text-xs opacity-90 flex items-center justify-between pt-2 border-t border-white/20">
+                    <span>Budget Stimato: <strong id="tracker-hero-budget">€0</strong></span>
+                    <span>Speso Reale: <strong id="tracker-hero-speso">€0</strong></span>
+                </div>
+            </div>
+
+            <!-- Lista Dettaglio Categorie & Voci (Budget vs Reale) -->
+            <div
+                class="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Controllo per Voce di Spesa</h3>
+                <div class="space-y-6" id="tracker-categories-list">
+                    <!-- Popolato da JS -->
+                </div>
+            </div>
+        </main>
+
     </div>
 
     <!-- ======================================================= -->
     <!-- 5. MODALI                                               -->
     <!-- ======================================================= -->
+
+    <!-- MODALE SCELTA FOGLIO PER CALENDARIO -->
+    <div id="modal-select-calendar-sheet"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Seleziona Foglio Mese</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Scegli su quale foglio desideri registrare le spese:</p>
+
+            <div class="space-y-3">
+                <select id="select-calendar-sheet-id"
+                    class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none min-h-[44px] cursor-pointer">
+                    <!-- Popolato da JS -->
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeSelectCalendarSheetModal()"
+                    class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer">
+                    Annulla
+                </button>
+                <button type="button" onclick="confirmSelectCalendarSheet()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm cursor-pointer">
+                    Conferma
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- MENU LATERALE (DRAWER) -->
     <div id="app-sidebar" class="fixed inset-0 z-50 pointer-events-none hidden">
@@ -543,20 +725,30 @@
                         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-600 transition text-left cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                                d="M3 12l2-2m0 0l7-7 7-7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
                             </path>
                         </svg>
                         <span>I Tuoi Fogli Spese</span>
                     </button>
 
-                    <button onclick="alert('Sezione Calendario / Tracker in arrivo nella prossima fase!')"
+                    <button onclick="openCalendarFromSidebar()"
                         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-600 transition text-left cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
                             </path>
                         </svg>
-                        <span>Tracker Giornaliero & Calendario</span>
+                        <span>Calendario Spese</span>
+                    </button>
+
+                    <button onclick="openTrackerFromSidebar()"
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-600 transition text-left cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                        <span>Tracker & Residui</span>
                     </button>
                 </nav>
             </div>
@@ -824,7 +1016,8 @@
                 </svg>
             </div>
             <div>
-                <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Riaprire le modifiche al foglio?</h3>
+                <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Riaprire le modifiche al foglio?
+                </h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
                     Il foglio tornerà modificabile e il rendiconto precedente verrà azzerato. Dovrai generare un nuovo
                     rendiconto al termine delle modifiche.
@@ -844,7 +1037,7 @@
     </div>
 
     <!-- Script applicazione con parametro cache-busting -->
-    <script src="app.js?v=3.3"></script>
+    <script src="app.js?v=3.7"></script>
 </body>
 
 </html>

@@ -31,6 +31,7 @@ let rendicontoChartInstance = null;
 // Istanze Flatpickr
 let fpCreateInstance = null;
 let fpEditInstance = null;
+let fpCalendarInstance = null;
 
 let state = {
     users: ["Martina", "Marika"],
@@ -156,31 +157,74 @@ function toggleSidebar() {
     }
 }
 
-// --- MODALE AVVISO DATA DUPLICATA ---
-function showDuplicateWarning(onConfirm) {
-    pendingDuplicateAction = onConfirm;
-    const modal = document.getElementById("modal-duplicate-date");
+// Apre il popup di scelta foglio per il Calendario
+function openCalendarFromSidebar() {
+    toggleSidebar();
+    const sheets = (state.data[currentUser]?.sheets || []);
+    if (sheets.length === 0) {
+        alert("Crea prima almeno un foglio spese per accedere al calendario!");
+        return;
+    }
+
+    if (sheets.length === 1) {
+        currentSheetId = sheets[0].id;
+        showView("calendar");
+        return;
+    }
+
+    openSelectCalendarSheetModal();
+}
+
+// Apre la sezione Tracker direttamente dal menu laterale
+function openTrackerFromSidebar() {
+    toggleSidebar();
+    const sheets = (state.data[currentUser]?.sheets || []);
+    if (sheets.length === 0) {
+        alert("Crea prima almeno un foglio spese per accedere al tracker!");
+        return;
+    }
+    if (!currentSheetId || !sheets.some(s => s.id === currentSheetId)) {
+        currentSheetId = sheets[0].id;
+    }
+    showView("tracker");
+}
+
+function openSelectCalendarSheetModal() {
+    const selectEl = document.getElementById("select-calendar-sheet-id");
+    const sheets = (state.data[currentUser]?.sheets || []);
+    if (!selectEl || sheets.length === 0) return;
+
+    selectEl.innerHTML = "";
+    sheets.forEach(sheet => {
+        const opt = document.createElement("option");
+        opt.value = sheet.id;
+        opt.textContent = `${sheet.name} (Accredito: ${sheet.salaryDate})`;
+        if (sheet.id === currentSheetId) opt.selected = true;
+        selectEl.appendChild(opt);
+    });
+
+    const modal = document.getElementById("modal-select-calendar-sheet");
     if (modal) modal.classList.remove("hidden");
 }
 
-function cancelDuplicateDateWarning() {
-    pendingDuplicateAction = null;
-    const modal = document.getElementById("modal-duplicate-date");
+function closeSelectCalendarSheetModal() {
+    const modal = document.getElementById("modal-select-calendar-sheet");
     if (modal) modal.classList.add("hidden");
 }
 
-function proceedDuplicateDateWarning() {
-    const action = pendingDuplicateAction;
-    cancelDuplicateDateWarning();
-    if (typeof action === "function") {
-        action();
-    }
+function confirmSelectCalendarSheet() {
+    const selectEl = document.getElementById("select-calendar-sheet-id");
+    if (!selectEl) return;
+
+    currentSheetId = selectEl.value;
+    closeSelectCalendarSheetModal();
+    showView("calendar");
 }
 
 // --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
 async function initApp() {
-    initTheme(); // Inizializza subito il tema salvato all'avvio[cite: 10]
-    
+    initTheme();
+
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
         try {
@@ -197,11 +241,23 @@ async function initApp() {
             console.error("Errore lettura dati locali:", e);
         }
     }
+
+    if (!state.users || !Array.isArray(state.users) || state.users.length === 0) {
+        state.users = ["Martina", "Marika"];
+    }
+    if (!state.data) {
+        state.data = {
+            Martina: { pin: null, sheets: [] },
+            Marika: { pin: null, sheets: [] }
+        };
+    }
+
+    // Mostra subito la schermata di autenticazione e popola i profili
     showView("auth");
 
     if (supabaseClient) {
         try {
-            const { data, error } = await supabaseClient
+            const { data } = await supabaseClient
                 .from('app_data')
                 .select('content')
                 .eq('id', 'main_state')
@@ -210,16 +266,7 @@ async function initApp() {
             if (data && data.content && data.content.users && data.content.data) {
                 state = data.content;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-                if (currentUser) {
-                    if (currentSheetId) renderSheetDetail();
-                    else renderDashboard();
-                } else {
-                    renderAuthUsers();
-                }
-            } else if (!data) {
-                await supabaseClient
-                    .from('app_data')
-                    .upsert({ id: 'main_state', content: state, updated_at: new Date() });
+                renderAuthUsers();
             }
         } catch (err) {
             console.warn("Impossibile contattare Supabase:", err);
@@ -256,36 +303,52 @@ function isValidPin(pin) {
 
 // --- GESTIONE VISTE (ROUTING) ---
 function showView(viewName) {
-    document.getElementById("view-auth").classList.add("hidden");
-    document.getElementById("view-pin").classList.add("hidden");
-    document.getElementById("view-dashboard").classList.add("hidden");
-    document.getElementById("view-sheet-detail").classList.add("hidden");
+    const viewAuth = document.getElementById("view-auth");
+    const viewPin = document.getElementById("view-pin");
+    const viewDash = document.getElementById("view-dashboard");
+    const viewDetail = document.getElementById("view-sheet-detail");
     const viewRend = document.getElementById("view-rendiconto");
+    const viewCal = document.getElementById("view-calendar");
+    const viewTracker = document.getElementById("view-tracker");
+
+    if (viewAuth) viewAuth.classList.add("hidden");
+    if (viewPin) viewPin.classList.add("hidden");
+    if (viewDash) viewDash.classList.add("hidden");
+    if (viewDetail) viewDetail.classList.add("hidden");
     if (viewRend) viewRend.classList.add("hidden");
+    if (viewCal) viewCal.classList.add("hidden");
+    if (viewTracker) viewTracker.classList.add("hidden");
 
     if (viewName === "auth") {
         currentUser = null;
         currentSheetId = null;
-        document.getElementById("view-auth").classList.remove("hidden");
+        if (viewAuth) viewAuth.classList.remove("hidden");
         renderAuthUsers();
     } else if (viewName === "pin") {
-        document.getElementById("view-pin").classList.remove("hidden");
+        if (viewPin) viewPin.classList.remove("hidden");
         resetPinDisplay();
     } else if (viewName === "dashboard") {
-        document.getElementById("view-dashboard").classList.remove("hidden");
+        if (viewDash) viewDash.classList.remove("hidden");
         renderDashboard();
     } else if (viewName === "sheet-detail") {
-        document.getElementById("view-sheet-detail").classList.remove("hidden");
+        if (viewDetail) viewDetail.classList.remove("hidden");
         renderSheetDetail();
     } else if (viewName === "rendiconto") {
         if (viewRend) viewRend.classList.remove("hidden");
         renderRendicontoView();
+    } else if (viewName === "calendar") {
+        if (viewCal) viewCal.classList.remove("hidden");
+        renderCalendarView();
+    } else if (viewName === "tracker") {
+        if (viewTracker) viewTracker.classList.remove("hidden");
+        renderTrackerView();
     }
 }
 
 // --- RENDERING GRIGLIA UTENTI ---
 function renderAuthUsers() {
     const grid = document.getElementById("auth-users-grid");
+    if (!grid) return;
     grid.innerHTML = "";
 
     state.users.forEach(userName => {
@@ -518,7 +581,6 @@ function openRendiconto(sheetId) {
 
     const latestDate = sheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
     
-    // Blocco: l'ultimo mese in corso non può avere rendiconto
     if (sheet.salaryDate >= latestDate) {
         return;
     }
@@ -613,7 +675,6 @@ function renderDashboard() {
         const card = document.createElement("div");
         card.className = "bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xs border border-gray-100 dark:border-gray-700 space-y-3 hover:border-emerald-300 dark:hover:border-emerald-600 transition group";
         card.innerHTML = `
-      <!-- TOP: Titolo e Data a sinistra, Matita e Bottoni Azione a destra -->
       <div class="flex items-start justify-between gap-2">
         <div class="space-y-1 min-w-0 flex-1">
           <div class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate leading-tight" title="${sheet.name}">
@@ -627,7 +688,6 @@ function renderDashboard() {
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
-          <!-- Matita -->
           <button onclick="openEditSheetModal('${sheet.id}')" 
             class="p-1.5 text-gray-400 hover:text-blue-600 transition active:scale-95 flex items-center justify-center cursor-pointer" 
             title="Modifica dati foglio">
@@ -637,7 +697,6 @@ function renderDashboard() {
             </svg>
           </button>
 
-          <!-- Colonna Bottoni (Apri/Visualizza + Rendiconto) -->
           <div class="flex flex-col gap-1.5 items-stretch w-[88px]">
             <button onclick="openSheet('${sheet.id}')" 
               class="w-full flex items-center justify-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 hover:bg-emerald-100/70 py-1.5 rounded-xl transition whitespace-nowrap cursor-pointer">
@@ -659,7 +718,6 @@ function renderDashboard() {
         </div>
       </div>
 
-      <!-- BOTTOM: Riga dati che occupa tutta la larghezza -->
       <div class="text-[10px] text-gray-600 dark:text-gray-400 flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700 whitespace-nowrap">
         <span>Stipendio: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${income}</strong></span>
         <span>Spese: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${totalExpenses}</strong></span>
@@ -757,6 +815,7 @@ function confirmCreateNewSheet() {
             salaryDate: dateInput,
             income: incomeVal,
             categories: initialCategories,
+            dailyExpenses: [],
             isLocked: false
         };
 
@@ -1053,6 +1112,295 @@ function renderCategories(activeSheet, totalExpenses) {
     });
 }
 
+// --- GESTIONE CALENDARIO SPESE GIORNALIERE ---
+function renderCalendarView() {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) {
+        backToDashboard();
+        return;
+    }
+
+    const titleIndicator = document.getElementById("calendar-sheet-title-indicator");
+    if (titleIndicator) {
+        titleIndicator.textContent = `Calendario: ${activeSheet.name}`;
+    }
+
+    if (!activeSheet.dailyExpenses) {
+        activeSheet.dailyExpenses = [];
+    }
+
+    const dateInput = document.getElementById("calendar-expense-date");
+    if (fpCalendarInstance) {
+        fpCalendarInstance.destroy();
+    }
+    if (dateInput) {
+        fpCalendarInstance = flatpickr(dateInput, {
+            locale: "it",
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "j F Y",
+            defaultDate: getTodayDateString(),
+            minDate: activeSheet.salaryDate,
+            maxDate: getTodayDateString(),
+            disableMobile: true,
+            static: true
+        });
+    }
+
+    const selectEl = document.getElementById("calendar-expense-item");
+    if (selectEl) {
+        selectEl.innerHTML = "";
+        activeSheet.categories.forEach(cat => {
+            cat.items.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item.id;
+                opt.textContent = `${cat.title} ➔ ${item.name}`;
+                selectEl.appendChild(opt);
+            });
+        });
+    }
+
+    renderCalendarExpensesList();
+}
+
+function confirmAddCalendarExpense() {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) return;
+
+    const dateVal = document.getElementById("calendar-expense-date")?.value;
+    const nameVal = document.getElementById("calendar-expense-name")?.value.trim();
+    const valueInput = document.getElementById("calendar-expense-value")?.value.trim();
+    const itemId = document.getElementById("calendar-expense-item")?.value;
+
+    if (!dateVal) {
+        alert("Seleziona una data valida.");
+        return;
+    }
+    if (!nameVal) {
+        alert("Inserisci una descrizione per la spesa.");
+        return;
+    }
+    const val = round2(String(valueInput).replace(',', '.'));
+    if (!valueInput || val <= 0) {
+        alert("Inserisci un importo valido.");
+        return;
+    }
+    if (!itemId) {
+        alert("Seleziona una voce di spesa di riferimento.");
+        return;
+    }
+
+    let categoryTitle = "";
+    let itemName = "";
+    activeSheet.categories.forEach(cat => {
+        cat.items.forEach(item => {
+            if (item.id === itemId) {
+                categoryTitle = cat.title;
+                itemName = item.name;
+            }
+        });
+    });
+
+    if (!activeSheet.dailyExpenses) activeSheet.dailyExpenses = [];
+    activeSheet.dailyExpenses.unshift({
+        id: "exp_" + Date.now(),
+        date: dateVal,
+        name: nameVal,
+        value: val,
+        itemId: itemId,
+        categoryTitle: categoryTitle,
+        itemName: itemName
+    });
+
+    activeSheet.dailyExpenses.sort((a, b) => b.date.localeCompare(a.date));
+    saveState();
+
+    document.getElementById("calendar-expense-name").value = "";
+    document.getElementById("calendar-expense-value").value = "";
+
+    renderCalendarExpensesList();
+}
+
+function renderCalendarExpensesList() {
+    const activeSheet = getActiveSheet();
+    const container = document.getElementById("calendar-expenses-list");
+    if (!container || !activeSheet) return;
+
+    container.innerHTML = "";
+    const expenses = activeSheet.dailyExpenses || [];
+
+    if (expenses.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">Nessuna spesa registrata nel calendario per questo foglio.</p>`;
+        return;
+    }
+
+    expenses.forEach((exp) => {
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 text-xs";
+        div.innerHTML = `
+            <div class="space-y-0.5 min-w-0 flex-1 pr-2">
+                <div class="font-bold text-gray-800 dark:text-gray-100 truncate">${exp.name}</div>
+                <div class="text-[10px] text-gray-400 flex items-center gap-1.5">
+                    <span>${exp.date}</span>
+                    <span>•</span>
+                    <span class="text-emerald-600 dark:text-emerald-400 font-medium">${exp.categoryTitle}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <span class="font-extrabold text-gray-900 dark:text-gray-100">€${formatCurrency(exp.value)}</span>
+                <button onclick="deleteCalendarExpense('${exp.id}')" class="p-1 text-red-500 hover:text-red-700 transition cursor-pointer" title="Elimina spesa">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function deleteCalendarExpense(expId) {
+    const activeSheet = getActiveSheet();
+    if (!activeSheet || !activeSheet.dailyExpenses) return;
+
+    if (!confirm("Sei sicura di voler eliminare questa spesa dal calendario?")) return;
+
+    activeSheet.dailyExpenses = activeSheet.dailyExpenses.filter(e => e.id !== expId);
+    saveState();
+    renderCalendarExpensesList();
+}
+
+// --- GESTIONE TRACKER SPESE & RESIDUI (BUDGET VS REALE) ---
+function renderTrackerView() {
+    const sheets = (state.data[currentUser]?.sheets || []);
+    if (sheets.length === 0) {
+        alert("Crea prima almeno un foglio spese!");
+        backToDashboard();
+        return;
+    }
+
+    if (!currentSheetId || !sheets.some(s => s.id === currentSheetId)) {
+        currentSheetId = sheets[0].id;
+    }
+
+    const selector = document.getElementById("tracker-sheet-selector");
+    if (selector) {
+        selector.innerHTML = "";
+        sheets.forEach(sheet => {
+            const opt = document.createElement("option");
+            opt.value = sheet.id;
+            opt.textContent = `${sheet.name} (${sheet.salaryDate})`;
+            if (sheet.id === currentSheetId) opt.selected = true;
+            selector.appendChild(opt);
+        });
+    }
+
+    const activeSheet = getActiveSheet();
+    if (!activeSheet) return;
+
+    const titleIndicator = document.getElementById("tracker-sheet-title-indicator");
+    if (titleIndicator) titleIndicator.textContent = `Tracker: ${activeSheet.name}`;
+
+    if (!activeSheet.dailyExpenses) activeSheet.dailyExpenses = [];
+
+    let totalBudget = 0;
+    activeSheet.categories.forEach(cat => {
+        cat.items.forEach(item => {
+            totalBudget += Number(item.value) || 0;
+        });
+    });
+    totalBudget = round2(totalBudget);
+
+    let totalSpent = 0;
+    activeSheet.dailyExpenses.forEach(exp => {
+        totalSpent += Number(exp.value) || 0;
+    });
+    totalSpent = round2(totalSpent);
+
+    const openToSpend = round2(totalBudget - totalSpent);
+
+    document.getElementById("tracker-hero-budget").textContent = `€${formatCurrency(totalBudget)}`;
+    document.getElementById("tracker-hero-speso").textContent = `€${formatCurrency(totalSpent)}`;
+    const heroResiduoEl = document.getElementById("tracker-hero-residuo");
+    const heroCardEl = document.getElementById("tracker-hero-card");
+
+    if (openToSpend < 0) {
+        heroResiduoEl.textContent = `-€${formatCurrency(Math.abs(openToSpend))}`;
+        heroCardEl.className = "bg-red-600 text-white rounded-3xl p-6 shadow-md space-y-2 transition-colors";
+    } else {
+        heroResiduoEl.textContent = `€${formatCurrency(openToSpend)}`;
+        heroCardEl.className = "bg-emerald-600 text-white rounded-3xl p-6 shadow-md space-y-2 transition-colors";
+    }
+
+    const spentByItemMap = {};
+    activeSheet.dailyExpenses.forEach(exp => {
+        spentByItemMap[exp.itemId] = (spentByItemMap[exp.itemId] || 0) + (Number(exp.value) || 0);
+    });
+
+    const categoriesContainer = document.getElementById("tracker-categories-list");
+    if (!categoriesContainer) return;
+    categoriesContainer.innerHTML = "";
+
+    activeSheet.categories.forEach(cat => {
+        let catBudget = 0;
+        let catSpent = 0;
+
+        cat.items.forEach(item => {
+            catBudget += Number(item.value) || 0;
+            catSpent += spentByItemMap[item.id] || 0;
+        });
+
+        catBudget = round2(catBudget);
+        catSpent = round2(catSpent);
+        const catResiduo = round2(catBudget - catSpent);
+
+        const catSection = document.createElement("div");
+        catSection.className = "space-y-3 pt-3 border-t border-gray-100 dark:border-gray-700 first:border-0 first:pt-0";
+        
+        let itemsHtml = "";
+        cat.items.forEach(item => {
+            const itemBudget = Number(item.value) || 0;
+            const itemSpent = spentByItemMap[item.id] || 0;
+            const itemResiduo = round2(itemBudget - itemSpent);
+            const isItemNeg = itemResiduo < 0;
+
+            itemsHtml += `
+                <div class="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700/50 text-xs">
+                    <div class="pr-2 min-w-0 flex-1">
+                        <div class="font-semibold text-gray-800 dark:text-gray-200 truncate">${item.name}</div>
+                        <div class="text-[10px] text-gray-400">Stimato: €${formatCurrency(itemBudget)} | Speso: €${formatCurrency(itemSpent)}</div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <div class="font-bold ${isItemNeg ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}">
+                            ${isItemNeg ? '-' : ''}€${formatCurrency(Math.abs(itemResiduo))}
+                        </div>
+                        <div class="text-[9px] text-gray-400 uppercase tracking-tight">${isItemNeg ? 'Sforato' : 'Rimasto'}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        catSection.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full ${cat.badgeClass}"></span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">${cat.title}</span>
+                </div>
+                <div class="text-xs font-bold ${catResiduo < 0 ? 'text-red-500' : 'text-gray-800 dark:text-gray-100'}">
+                    Residuo: ${catResiduo < 0 ? '-' : ''}€${formatCurrency(Math.abs(catResiduo))}
+                </div>
+            </div>
+            <div class="pl-4 space-y-1">
+                ${itemsHtml}
+            </div>
+        `;
+        categoriesContainer.appendChild(catSection);
+    });
+}
+
+function onTrackerSheetChange(sheetId) {
+    currentSheetId = sheetId;
+    renderTrackerView();
+}
+
 // --- RENDERING DELLA SCHERMATA RENDICONTO ---
 function renderRendicontoView() {
     const activeSheet = getActiveSheet();
@@ -1114,7 +1462,7 @@ function renderRendicontoView() {
         badge.textContent = `In perfetto equilibrio: ${savingsRatio}% ⚖️`;
         badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800";
         fBox.className = "p-4 rounded-2xl bg-sky-50/60 dark:bg-sky-900/20 border border-sky-200/70 dark:border-sky-800 text-xs space-y-1 text-sky-900 dark:text-sky-200";
-        fTitle.innerHTML = "<span>⚖️</span> <span>Mese in ottimo equilibrio</span>";
+        fTitle.innerHTML = "<span>⚖</span> <span>Mese in ottimo equilibrio</span>";
         fText.textContent = `Hai chiuso con un risparmio del ${savingsRatio}% (€${formatCurrency(netSavings)}). Tutte le uscite sono state sostenute senza sforare il capitale disponibile.`;
     } else if (savingsRatio >= 0) {
         badge.textContent = `Mese tirato: ${savingsRatio}% 🧗`;
@@ -1126,7 +1474,7 @@ function renderRendicontoView() {
         const deficit = formatCurrency(Math.abs(netSavings));
         badge.textContent = `Spese oltre lo stipendio: ${savingsRatio}% 🚨`;
         badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800";
-        fBox.className = "p-4 rounded-2xl bg-red-50/70 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs space-y-1 text-red-900 dark:text-red-200";
+        fBox.className = "p-4 rounded-2xl bg-red-50/70 dark:bg-red-900/20 border border-red-200/70 dark:border-red-800 text-xs space-y-1 text-red-900 dark:text-red-200";
         fTitle.innerHTML = "<span>🚨</span> <span>Uscite superiori allo stipendio</span>";
         fText.textContent = `Questo mese hai speso €${deficit} in più rispetto allo stipendio accreditato. Il disavanzo è stato coperto da risparmi precedenti; per il prossimo ciclo riduci le spese variabili per tornare in attivo.`;
     }
@@ -1213,7 +1561,6 @@ function handleIncomeChange(val) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
     
-    // Converte la virgola in punto per il calcolo matematico
     const normalizedVal = String(val).replace(',', '.');
     activeSheet.income = round2(normalizedVal);
     saveState();
@@ -1341,17 +1688,13 @@ function executeDeleteCurrentSheet() {
         return;
     }
 
-    // Rimuove il foglio corrente dalla lista
     state.data[currentUser].sheets = state.data[currentUser].sheets.filter(s => s.id !== activeSheet.id);
 
-    // CONTROLLO DI SICUREZZA POST-ELIMINAZIONE:
-    // Troviamo il nuovo foglio più recente rimasto nell'elenco
     const remainingSheets = state.data[currentUser].sheets;
     if (remainingSheets.length > 0) {
         const latestDate = remainingSheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
         remainingSheets.forEach(sheet => {
             const hasNextSheet = sheet.salaryDate < latestDate;
-            // Se questo foglio non ha più fogli successivi, DEVE tassativamente essere sbloccato
             if (!hasNextSheet) {
                 sheet.isLocked = false;
                 delete sheet.closedDate;
@@ -1416,7 +1759,6 @@ async function exportRendicontoToPDF() {
         return;
     }
 
-    // Mostra il footer e formatta data e ora esatte
     const footerEl = document.getElementById("pdf-exclusive-footer");
     const timestampEl = document.getElementById("pdf-footer-timestamp");
     if (footerEl && timestampEl) {
