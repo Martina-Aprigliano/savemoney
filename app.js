@@ -157,7 +157,6 @@ function toggleSidebar() {
     }
 }
 
-// Apre il popup di scelta foglio per il Calendario
 function openCalendarFromSidebar() {
     toggleSidebar();
     const sheets = (state.data[currentUser]?.sheets || []);
@@ -175,7 +174,6 @@ function openCalendarFromSidebar() {
     openSelectCalendarSheetModal();
 }
 
-// Apre la sezione Tracker direttamente dal menu laterale
 function openTrackerFromSidebar() {
     toggleSidebar();
     const sheets = (state.data[currentUser]?.sheets || []);
@@ -222,7 +220,7 @@ function confirmSelectCalendarSheet() {
 }
 
 // --- CARICAMENTO E SALVATAGGIO CLOUD (SUPABASE + LOCALSTORAGE) ---
-async function initApp() {
+function initApp() {
     initTheme();
 
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -252,25 +250,25 @@ async function initApp() {
         };
     }
 
-    // Mostra subito la schermata di autenticazione e popola i profili
     showView("auth");
+    renderAuthUsers();
 
     if (supabaseClient) {
-        try {
-            const { data } = await supabaseClient
-                .from('app_data')
-                .select('content')
-                .eq('id', 'main_state')
-                .maybeSingle();
-
-            if (data && data.content && data.content.users && data.content.data) {
-                state = data.content;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-                renderAuthUsers();
-            }
-        } catch (err) {
-            console.warn("Impossibile contattare Supabase:", err);
-        }
+        supabaseClient
+            .from('app_data')
+            .select('content')
+            .eq('id', 'main_state')
+            .maybeSingle()
+            .then(({ data }) => {
+                if (data && data.content && data.content.users && data.content.data) {
+                    state = data.content;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                    renderAuthUsers();
+                }
+            })
+            .catch(err => {
+                console.warn("Impossibile contattare Supabase:", err);
+            });
     }
 }
 
@@ -665,8 +663,8 @@ function renderDashboard() {
         (sheet.categories || []).forEach(c => {
             totalExpenses += c.items.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
         });
-        const income = Number(sheet.income) || 0;
-        const netSavings = income - totalExpenses;
+        const income = round2(sheet.income) || 0;
+        const netSavings = round2(income - totalExpenses);
 
         const hasNextSheet = sheet.salaryDate < latestDate;
         const isRendicontoActive = hasNextSheet;
@@ -719,9 +717,9 @@ function renderDashboard() {
       </div>
 
       <div class="text-[10px] text-gray-600 dark:text-gray-400 flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700 whitespace-nowrap">
-        <span>Stipendio: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${income}</strong></span>
-        <span>Spese: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${totalExpenses}</strong></span>
-        <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'} font-bold">€${netSavings}</strong></span>
+        <span>Stipendio: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${formatCurrency(income)}</strong></span>
+        <span>Spese: <strong class="text-gray-900 dark:text-gray-100 font-bold">€${formatCurrency(totalExpenses)}</strong></span>
+        <span>Risparmio: <strong class="${netSavings < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'} font-bold">€${formatCurrency(netSavings)}</strong></span>
       </div>
     `;
         container.appendChild(card);
@@ -1035,7 +1033,7 @@ function renderCategories(activeSheet, totalExpenses) {
         </div>
         <div class="flex items-center gap-3 text-xs sm:text-sm">
           <span class="text-gray-500 dark:text-gray-400 font-medium">${catPct}%</span>
-          <span class="font-bold text-gray-800 dark:text-gray-100">€${catSum}</span>
+          <span class="font-bold text-gray-800 dark:text-gray-100">€${formatCurrency(catSum)}</span>
           <svg class="w-4 h-4 text-gray-500 dark:text-gray-400 transform transition-transform ${cat.collapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
           </svg>
@@ -1365,8 +1363,8 @@ function renderTrackerView() {
             itemsHtml += `
                 <div class="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700/50 text-xs">
                     <div class="pr-2 min-w-0 flex-1">
-                        <div class="font-semibold text-gray-800 dark:text-gray-200 truncate">${item.name}</div>
-                        <div class="text-[10px] text-gray-400">Stimato: €${formatCurrency(itemBudget)} | Speso: €${formatCurrency(itemSpent)}</div>
+                        <div class="font-semibold text-gray-800 dark:text-gray-200 truncate">${item.name} <span class="text-[10px] font-normal text-gray-500">(Budget: €${formatCurrency(itemBudget)})</span></div>
+                        <div class="text-[10px] text-gray-400">Speso reale: €${formatCurrency(itemSpent)}</div>
                     </div>
                     <div class="text-right shrink-0">
                         <div class="font-bold ${isItemNeg ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}">
@@ -1380,11 +1378,11 @@ function renderTrackerView() {
 
         catSection.innerHTML = `
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full ${cat.badgeClass}"></span>
-                    <span class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">${cat.title}</span>
+                <div class="flex items-center gap-2 pr-2">
+                    <span class="w-2.5 h-2.5 rounded-full shrink-0 ${cat.badgeClass}"></span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 truncate">${cat.title}</span>
                 </div>
-                <div class="text-xs font-bold ${catResiduo < 0 ? 'text-red-500' : 'text-gray-800 dark:text-gray-100'}">
+                <div class="text-xs font-bold shrink-0 ${catResiduo < 0 ? 'text-red-500' : 'text-gray-800 dark:text-gray-100'}">
                     Residuo: ${catResiduo < 0 ? '-' : ''}€${formatCurrency(Math.abs(catResiduo))}
                 </div>
             </div>
@@ -1525,7 +1523,7 @@ function renderRendicontoView() {
                 <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${cat.color};"></span>
                 <span class="text-gray-700 dark:text-gray-300 font-medium">${cat.title}</span>
             </div>
-            <span class="font-bold text-gray-800 dark:text-gray-100">€${sum} (${pct}%)</span>
+            <span class="font-bold text-gray-800 dark:text-gray-100">€${formatCurrency(sum)} (${pct}%)</span>
         `;
         legContainer.appendChild(row);
     });
@@ -1550,7 +1548,7 @@ function renderRendicontoView() {
                         <span class="text-[10px] text-gray-400 block">${item.category}</span>
                     </div>
                 </div>
-                <span class="font-bold text-gray-900 dark:text-gray-100">€${item.value}</span>
+                <span class="font-bold text-gray-900 dark:text-gray-100">€${formatCurrency(item.value)}</span>
             `;
             topContainer.appendChild(div);
         });
@@ -1786,7 +1784,7 @@ async function exportRendicontoToPDF() {
     };
 
     try {
-        await html2pdf().set(opt).from(sourceEl).save();
+        await html2pdf().set(opt).from(sourceE1).save();
     } catch (err) {
         console.error("Errore generazione PDF:", err);
         alert("Si è verificato un errore durante la creazione del PDF.");
