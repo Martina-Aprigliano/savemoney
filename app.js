@@ -14,21 +14,13 @@ let currentUser = null;
 let currentSheetId = null;
 let editingSheetId = null;
 
-// Gestione PIN temporaneo in digitazione
 let pendingUserForPin = null;
 let enteredPin = "";
-
-// Callback per conferma modale data duplicata
 let pendingDuplicateAction = null;
-
-// Gestione Modali Voci
 let pendingActionItem = null;
-
-// Gestione Chiusura Mese (Rendiconto) e Grafico
 let pendingLockSheetId = null;
 let rendicontoChartInstance = null;
 
-// Istanze Flatpickr
 let fpCreateInstance = null;
 let fpEditInstance = null;
 let fpCalendarInstance = null;
@@ -250,9 +242,11 @@ function initApp() {
         };
     }
 
+    // Mostra subito la schermata di login e renderizza i profili in modo sincrono
     showView("auth");
     renderAuthUsers();
 
+    // Sincronizzazione cloud non bloccante in background
     if (supabaseClient) {
         supabaseClient
             .from('app_data')
@@ -578,7 +572,7 @@ function openRendiconto(sheetId) {
     if (!sheet) return;
 
     const latestDate = sheets.reduce((max, s) => (s.salaryDate > max ? s.salaryDate : max), "");
-    
+
     if (sheet.salaryDate >= latestDate) {
         return;
     }
@@ -705,11 +699,10 @@ function renderDashboard() {
             </button>
 
             <button ${isRendicontoActive ? `onclick="openRendiconto('${sheet.id}')"` : 'disabled'} 
-              class="w-full flex items-center justify-center text-[10px] font-bold py-1 rounded-xl transition whitespace-nowrap ${
-                isRendicontoActive 
-                  ? 'bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 text-sky-800 dark:text-sky-300 cursor-pointer active:scale-95' 
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none'
-              }">
+              class="w-full flex items-center justify-center text-[10px] font-bold py-1 rounded-xl transition whitespace-nowrap ${isRendicontoActive
+                ? 'bg-sky-100 dark:bg-sky-900/40 hover:bg-sky-200 text-sky-800 dark:text-sky-300 cursor-pointer active:scale-95'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none'
+            }">
               <span>Rendiconto</span>
             </button>
           </div>
@@ -999,7 +992,7 @@ function renderSheetDetail() {
         statRatioEl.className = "text-lg sm:text-2xl font-bold text-emerald-600 mt-1";
         statSavingsEl.textContent = `€${formatCurrency(netSavings)}`;
     }
-    
+
     statRatioEl.textContent = `${savingsRatio}%`;
     document.getElementById("stat-total-expenses").textContent = `€${formatCurrency(totalExpenses)}`;
 
@@ -1110,7 +1103,7 @@ function renderCategories(activeSheet, totalExpenses) {
     });
 }
 
-// --- GESTIONE CALENDARIO SPESE GIORNALIERE ---
+// --- GESTIONE CALENDARIO SPESE GIORNALIERE CON RICERCA E FILTRI ---
 function renderCalendarView() {
     const activeSheet = getActiveSheet();
     if (!activeSheet) {
@@ -1152,6 +1145,7 @@ function renderCalendarView() {
             cat.items.forEach(item => {
                 const opt = document.createElement("option");
                 opt.value = item.id;
+                opt.dataset.categoryKey = cat.key;
                 opt.textContent = `${cat.title} ➔ ${item.name}`;
                 selectEl.appendChild(opt);
             });
@@ -1168,7 +1162,8 @@ function confirmAddCalendarExpense() {
     const dateVal = document.getElementById("calendar-expense-date")?.value;
     const nameVal = document.getElementById("calendar-expense-name")?.value.trim();
     const valueInput = document.getElementById("calendar-expense-value")?.value.trim();
-    const itemId = document.getElementById("calendar-expense-item")?.value;
+    const selectItem = document.getElementById("calendar-expense-item");
+    const itemId = selectItem?.value;
 
     if (!dateVal) {
         alert("Seleziona una data valida.");
@@ -1189,11 +1184,13 @@ function confirmAddCalendarExpense() {
     }
 
     let categoryTitle = "";
+    let categoryKey = "";
     let itemName = "";
     activeSheet.categories.forEach(cat => {
         cat.items.forEach(item => {
             if (item.id === itemId) {
                 categoryTitle = cat.title;
+                categoryKey = cat.key;
                 itemName = item.name;
             }
         });
@@ -1206,6 +1203,7 @@ function confirmAddCalendarExpense() {
         name: nameVal,
         value: val,
         itemId: itemId,
+        categoryKey: categoryKey,
         categoryTitle: categoryTitle,
         itemName: itemName
     });
@@ -1215,7 +1213,13 @@ function confirmAddCalendarExpense() {
 
     document.getElementById("calendar-expense-name").value = "";
     document.getElementById("calendar-expense-value").value = "";
+    document.getElementById("calendar-search-input").value = "";
+    document.getElementById("calendar-filter-category").value = "all";
 
+    renderCalendarExpensesList();
+}
+
+function filterCalendarExpenses() {
     renderCalendarExpensesList();
 }
 
@@ -1227,12 +1231,35 @@ function renderCalendarExpensesList() {
     container.innerHTML = "";
     const expenses = activeSheet.dailyExpenses || [];
 
-    if (expenses.length === 0) {
-        container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">Nessuna spesa registrata nel calendario per questo foglio.</p>`;
+    const searchQuery = document.getElementById("calendar-search-input")?.value.toLowerCase().trim() || "";
+    const filterCat = document.getElementById("calendar-filter-category")?.value || "all";
+
+    const filteredExpenses = expenses.filter(exp => {
+        const matchesSearch = exp.name.toLowerCase().includes(searchQuery);
+
+        if (filterCat === "all") return matchesSearch;
+
+        // Mappa di sicurezza per associare la chiave tecnica al titolo esatto della categoria
+        const keyMap = {
+            "ricorrenti_base": "Spese Ricorrenti di Base",
+            "uscite_spot": "Uscite ed Eventi Spot",
+            "spese_variabili": "Spese Quotidiane Variabili"
+        };
+        const targetTitle = keyMap[filterCat];
+
+        // Verifica sia la chiave tecnica che il titolo (gestisce anche le vecchie spese salvate in precedenza)
+        const matchesKey = exp.categoryKey === filterCat;
+        const matchesTitle = exp.categoryTitle === filterCat || (targetTitle && exp.categoryTitle === targetTitle);
+
+        return matchesSearch && (matchesKey || matchesTitle);
+    });
+
+    if (filteredExpenses.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">Nessuna spesa trovata con i filtri selezionati.</p>`;
         return;
     }
 
-    expenses.forEach((exp) => {
+    filteredExpenses.forEach((exp) => {
         const div = document.createElement("div");
         div.className = "flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/40 border border-gray-100 dark:border-gray-700 text-xs";
         div.innerHTML = `
@@ -1352,7 +1379,7 @@ function renderTrackerView() {
 
         const catSection = document.createElement("div");
         catSection.className = "space-y-3 pt-3 border-t border-gray-100 dark:border-gray-700 first:border-0 first:pt-0";
-        
+
         let itemsHtml = "";
         cat.items.forEach(item => {
             const itemBudget = Number(item.value) || 0;
@@ -1360,17 +1387,36 @@ function renderTrackerView() {
             const itemResiduo = round2(itemBudget - itemSpent);
             const isItemNeg = itemResiduo < 0;
 
+            let pct = itemBudget > 0 ? Math.round((itemSpent / itemBudget) * 100) : (itemSpent > 0 ? 100 : 0);
+            if (pct > 100) pct = 100;
+
+            let barColor = "bg-emerald-500";
+            if (pct >= 85 && pct < 100) barColor = "bg-amber-500";
+            if (pct >= 100 || isItemNeg) barColor = "bg-red-500";
+
             itemsHtml += `
-                <div class="flex items-center justify-between py-2 border-b border-gray-50 dark:border-gray-700/50 text-xs">
-                    <div class="pr-2 min-w-0 flex-1">
-                        <div class="font-semibold text-gray-800 dark:text-gray-200 truncate">${item.name} <span class="text-[10px] font-normal text-gray-500">(Budget: €${formatCurrency(itemBudget)})</span></div>
-                        <div class="text-[10px] text-gray-400">Speso reale: €${formatCurrency(itemSpent)}</div>
-                    </div>
-                    <div class="text-right shrink-0">
-                        <div class="font-bold ${isItemNeg ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}">
-                            ${isItemNeg ? '-' : ''}€${formatCurrency(Math.abs(itemResiduo))}
+                <div class="py-2.5 border-b border-gray-50 dark:border-gray-700/50 text-xs space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <div class="pr-2 min-w-0 flex-1">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 truncate">${item.name}</span>
+                            <span class="text-[10px] font-normal text-gray-500 ml-1">(Budget: €${formatCurrency(itemBudget)})</span>
                         </div>
-                        <div class="text-[9px] text-gray-400 uppercase tracking-tight">${isItemNeg ? 'Sforato' : 'Rimasto'}</div>
+                        <div class="text-right shrink-0">
+                            <div class="font-bold ${isItemNeg ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}">
+                                ${isItemNeg ? '-' : ''}€${formatCurrency(Math.abs(itemResiduo))}
+                            </div>
+                            <div class="text-[9px] text-gray-400 uppercase tracking-tight">${isItemNeg ? 'Sforato' : 'Rimasto'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] text-gray-400">
+                            <span>Speso: €${formatCurrency(itemSpent)}</span>
+                            <span>${pct}%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full ${barColor} transition-all duration-300 rounded-full" style="width: ${pct}%;"></div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1457,7 +1503,7 @@ function renderRendicontoView() {
         fTitle.innerHTML = "<span>🏆</span> <span>Ottima disciplina finanziaria!</span>";
         fText.textContent = `Hai accantonato il ${savingsRatio}% del tuo stipendio (€${formatCurrency(netSavings)}). Ottima gestione del budget, con uscite controllate e risparmio prioritario.`;
     } else if (savingsRatio >= 10) {
-        badge.textContent = `In perfetto equilibrio: ${savingsRatio}% ⚖️`;
+        badge.textContent = `In perfetto equilibrio: ${savingsRatio}% ⚖️️`;
         badge.className = "inline-block px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 dark:bg-sky-900/40 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800";
         fBox.className = "p-4 rounded-2xl bg-sky-50/60 dark:bg-sky-900/20 border border-sky-200/70 dark:border-sky-800 text-xs space-y-1 text-sky-900 dark:text-sky-200";
         fTitle.innerHTML = "<span>⚖</span> <span>Mese in ottimo equilibrio</span>";
@@ -1558,7 +1604,7 @@ function renderRendicontoView() {
 function handleIncomeChange(val) {
     const activeSheet = getActiveSheet();
     if (!activeSheet) return;
-    
+
     const normalizedVal = String(val).replace(',', '.');
     activeSheet.income = round2(normalizedVal);
     saveState();
@@ -1784,7 +1830,7 @@ async function exportRendicontoToPDF() {
     };
 
     try {
-        await html2pdf().set(opt).from(sourceE1).save();
+        await html2pdf().set(opt).from(sourceEl).save();
     } catch (err) {
         console.error("Errore generazione PDF:", err);
         alert("Si è verificato un errore durante la creazione del PDF.");
