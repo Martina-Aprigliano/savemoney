@@ -167,7 +167,6 @@
         <!-- 3. SCHERMATA ELENCO FOGLI (DASHBOARD)                   -->
         <!-- ======================================================= -->
         <div id="view-dashboard" class="hidden space-y-5">
-            <!-- Header con Logo, Profilo, Menu Laterale e Lampadina -->
             <header
                 class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -181,7 +180,6 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <!-- Tasto Lampadina Stilizzata -->
                     <button type="button" onclick="toggleDarkMode()"
                         class="p-2 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
                         title="Cambia tema">
@@ -192,7 +190,6 @@
                         </svg>
                     </button>
 
-                    <!-- Tasto Menu Laterale (Hamburger) -->
                     <button type="button" onclick="toggleSidebar()"
                         class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
                         title="Menu">
@@ -203,7 +200,6 @@
                 </div>
             </header>
 
-            <!-- Titolo Sezione Fogli con + Nuovo Foglio affiancato -->
             <div class="flex items-center justify-between px-1">
                 <h2 class="text-sm font-bold text-gray-700 dark:text-gray-200">I Tuoi Fogli Spese</h2>
                 <div class="flex items-center gap-2">
@@ -219,7 +215,6 @@
                 </div>
             </div>
 
-            <!-- Elenco card fogli generato dinamicamente via JS -->
             <div id="dash-sheets-list" class="space-y-3"></div>
         </div>
 
@@ -227,8 +222,6 @@
         <!-- 4. SCHERMATA DETTAGLIO FOGLIO MESE ATTIVO               -->
         <!-- ======================================================= -->
         <main id="view-sheet-detail" class="hidden space-y-5">
-
-            <!-- Barra superiore con Back e Azioni -->
             <div
                 class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="backToDashboard()"
@@ -241,7 +234,6 @@
                 </button>
 
                 <div class="flex items-center gap-2">
-                    <!-- Tasto Modifica (visibile solo se il foglio è in modalità sola lettura/Visualizza) -->
                     <button type="button" id="btn-unlock-sheet" onclick="openUnlockSheetModal()"
                         class="hidden bg-blue-50 hover:bg-blue-100 text-blue-700 p-2 rounded-xl transition cursor-pointer border border-blue-200"
                         title="Modifica foglio">
@@ -261,7 +253,6 @@
                         <span>Excel</span>
                     </button>
 
-                    <!-- Lampadina stilizzata (Solo contorno) -->
                     <button type="button" onclick="toggleDarkMode()"
                         class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
                         title="Cambia tema">
@@ -284,11 +275,8 @@
                 </div>
             </div>
 
-            <!-- Scheda Grafica del Foglio -->
             <div
                 class="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
-
-                <!-- Info testata foglio -->
                 <div
                     class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     <div>
@@ -300,33 +288,27 @@
                     </div>
                 </div>
 
-                <!-- 3 Statistiche Hero in alto -->
                 <div class="grid grid-cols-3 gap-2 text-center py-1">
                     <div>
                         <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
-                            Totale uscite
-                            pianificate</div>
+                            Totale uscite pianificate</div>
                         <div class="text-lg sm:text-2xl font-bold text-gray-800 dark:text-gray-100 mt-1"
                             id="stat-total-expenses">€0</div>
                     </div>
                     <div>
                         <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
-                            Risparmio netto
-                            rimanente</div>
+                            Risparmio netto rimanente</div>
                         <div class="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1"
                             id="stat-net-savings">€0</div>
                     </div>
                     <div>
                         <div class="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-tight">
-                            Percentuale
-                            risparmio</div>
+                            Percentuale risparmio</div>
                         <div class="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1"
-                            id="stat-savings-ratio">0%
-                        </div>
+                            id="stat-savings-ratio">0%</div>
                     </div>
                 </div>
 
-                <!-- Campo Stipendio / Budget Residuo -->
                 <div class="space-y-1.5">
                     <label for="input-income"
                         class="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -342,7 +324,42 @@
                     </div>
                 </div>
 
-                <!-- Ripartizione Voci & Barra Progresso Multicolore -->
+                <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <span
+                            class="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none"
+                                stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20 12v10H4V12M2 7h20v5H2V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z">
+                                </path>
+                            </svg>
+                            Entrate Extra (Regali, Rimborsi...)
+                        </span>
+                    </div>
+
+                    <div id="extra-incomes-container" class="space-y-2"></div>
+
+                    <div id="add-extra-income-box"
+                        class="bg-gray-50 dark:bg-gray-700/40 rounded-2xl p-3 border border-gray-200 dark:border-gray-700 space-y-2.5">
+                        <div class="text-xs font-semibold text-gray-700 dark:text-gray-300">Aggiungi nuova entrata extra
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input type="text" id="extra-income-name" maxlength="30"
+                                placeholder="Es. Regalo compleanno..."
+                                class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <div class="flex items-center gap-2">
+                                <input type="text" inputmode="decimal" id="extra-income-value" placeholder="Importo €"
+                                    class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <button type="button" onclick="confirmAddExtraIncome()"
+                                    class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition cursor-pointer shrink-0">
+                                    + Aggiungi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="space-y-2 pt-2">
                     <div class="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200">Ripartizione voci
                         del ciclo</div>
@@ -356,12 +373,8 @@
                     </div>
                 </div>
 
-                <!-- Sezioni Accordion Categorie -->
-                <div class="space-y-5 pt-1" id="categories-container">
-                    <!-- Renderizzato via JS -->
-                </div>
+                <div class="space-y-5 pt-1" id="categories-container"></div>
 
-                <!-- Nota in corsivo -->
                 <p
                     class="text-[11px] sm:text-xs italic text-gray-500 dark:text-gray-400 pt-4 border-t border-gray-100 dark:border-gray-700 leading-relaxed">
                     Il surplus visualizzato è la cifra esatta che andrà a risparmio.
@@ -373,7 +386,6 @@
         <!-- 4.1 SCHERMATA RENDICONTO FINALE                         -->
         <!-- ======================================================= -->
         <main id="view-rendiconto" class="hidden space-y-5">
-            <!-- Barra superiore con Back, PDF e Lampadina -->
             <div
                 class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="backToDashboard()"
@@ -386,7 +398,6 @@
                 </button>
 
                 <div class="flex items-center gap-2">
-                    <!-- Tasto PDF con download formattato A4 in rosso satinato -->
                     <button type="button" onclick="exportRendicontoToPDF()"
                         class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95">
                         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -397,7 +408,6 @@
                         <span>PDF</span>
                     </button>
 
-                    <!-- Lampadina stilizzata -->
                     <button type="button" onclick="toggleDarkMode()"
                         class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
                         title="Cambia tema">
@@ -410,11 +420,8 @@
                 </div>
             </div>
 
-            <!-- Scheda Rendiconto Grafica (con ID rendiconto-card-printable per l'export) -->
             <div id="rendiconto-card-printable"
                 class="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
-
-                <!-- Header Rendiconto con Titolo e Date Apertura / Chiusura -->
                 <div
                     class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
@@ -426,7 +433,6 @@
                                 Bilancio Chiuso
                             </span>
                         </div>
-                        <!-- Date di Apertura e Chiusura -->
                         <div
                             class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mt-1.5">
                             <span>Apertura (accredito): <strong id="rendiconto-date-start"
@@ -438,15 +444,13 @@
                     </div>
                 </div>
 
-                <!-- Hero Card Risparmio & Verdetto -->
                 <div
                     class="bg-[#f8f9fa] dark:bg-gray-700/50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border border-gray-100 dark:border-gray-700">
                     <div class="text-center sm:text-left space-y-1">
                         <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">Risparmio Netto Accantonato
                         </div>
                         <div class="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400"
-                            id="rendiconto-hero-savings">
-                            €0</div>
+                            id="rendiconto-hero-savings">€0</div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">
                             Entrate: <strong class="text-gray-700 dark:text-gray-200"
                                 id="rendiconto-hero-income">€0</strong> |
@@ -462,7 +466,6 @@
                     </div>
                 </div>
 
-                <!-- Grafico a Torta Categorie -->
                 <div class="space-y-3">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Ripartizione Spese (Grafico)
                     </h3>
@@ -470,21 +473,15 @@
                         <div class="w-44 h-44 relative shrink-0">
                             <canvas id="rendicontoPieChart"></canvas>
                         </div>
-                        <div class="space-y-2 text-xs w-full max-w-[220px]" id="rendiconto-legend">
-                            <!-- Popolato da JS -->
-                        </div>
+                        <div class="space-y-2 text-xs w-full max-w-[220px]" id="rendiconto-legend"></div>
                     </div>
                 </div>
 
-                <!-- Top 3 Voci di Spesa più pesanti -->
                 <div class="space-y-3 pt-2 border-t border-gray-100 dark:border-gray-700">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Le Voci più Rilevanti</h3>
-                    <div class="space-y-2" id="rendiconto-top-items">
-                        <!-- Popolato da JS -->
-                    </div>
+                    <div class="space-y-2" id="rendiconto-top-items"></div>
                 </div>
 
-                <!-- Box Feedback Serio + Amichevole -->
                 <div class="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-900/20 border border-amber-200/70 dark:border-amber-800/50 text-xs space-y-1 text-amber-900 dark:text-amber-200"
                     id="rendiconto-feedback-box">
                     <div class="font-bold flex items-center gap-1.5" id="rendiconto-feedback-title">
@@ -495,13 +492,11 @@
                     </p>
                 </div>
 
-                <!-- Footer invisibile nell'app, mostrato ESCLUSIVAMENTE nel PDF scaricato -->
                 <div id="pdf-exclusive-footer"
                     class="hidden pt-6 mt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-[11px] text-gray-400">
                     <span class="text-gray-600 dark:text-gray-300 font-bold tracking-tight">saveMoney</span>
                     <span id="pdf-footer-timestamp" class="text-gray-500 dark:text-gray-400 font-medium"></span>
                 </div>
-
             </div>
         </main>
 
@@ -509,7 +504,6 @@
         <!-- 4.2 SCHERMATA CALENDARIO SPESE GIORNALIERE              -->
         <!-- ======================================================= -->
         <main id="view-calendar" class="hidden space-y-5">
-            <!-- Barra superiore con Back e Lampadina -->
             <div
                 class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="backToDashboard()"
@@ -524,7 +518,6 @@
                 <div class="text-xs font-bold text-gray-800 dark:text-gray-100" id="calendar-sheet-title-indicator">
                     Calendario Spese</div>
 
-                <!-- Lampadina -->
                 <button type="button" onclick="toggleDarkMode()"
                     class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer"
                     title="Cambia tema">
@@ -536,7 +529,6 @@
                 </button>
             </div>
 
-            <!-- Card Inserimento Spesa Giornaliera -->
             <div
                 class="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                 <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center justify-between gap-2">
@@ -575,7 +567,6 @@
                                 spesa collegata</label>
                             <select id="calendar-expense-item"
                                 class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none min-h-[42px]">
-                                <!-- Popolato dinamicamente da JS con le voci specifiche del foglio selezionato -->
                             </select>
                         </div>
                     </div>
@@ -587,14 +578,12 @@
                 </button>
             </div>
 
-            <!-- Storico Spese del Mese con Filtri di Ricerca (UNICO E PULITO) -->
             <div
                 class="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Storico Spese del Mese</h3>
                 </div>
 
-                <!-- Barra di Ricerca e Filtro Categoria -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     <div class="relative flex items-center">
                         <span class="absolute left-3 text-gray-400">
@@ -618,20 +607,14 @@
                     </div>
                 </div>
 
-                <div class="space-y-2.5 pt-1" id="calendar-expenses-list">
-                    <!-- Popolato da JS -->
-                </div>
+                <div class="space-y-2.5 pt-1" id="calendar-expenses-list"></div>
             </div>
         </main>
 
         <!-- ======================================================= -->
         <!-- 4.3 SCHERMATA TRACKER SPESE & BUDGET (BUDGET VS REALE)  -->
         <!-- ======================================================= -->
-        <!-- ======================================================= -->
-        <!-- 4.3 SCHERMATA TRACKER SPESE & BUDGET (BUDGET VS REALE)  -->
-        <!-- ======================================================= -->
         <main id="view-tracker" class="hidden space-y-4">
-            <!-- Barra superiore con Back e Lampadina -->
             <div
                 class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="backToDashboard()"
@@ -647,7 +630,6 @@
                     id="tracker-sheet-title-indicator">
                     Tracker & Residui</div>
 
-                <!-- Lampadina -->
                 <button type="button" onclick="toggleDarkMode()"
                     class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer shrink-0"
                     title="Cambia tema">
@@ -659,7 +641,6 @@
                 </button>
             </div>
 
-            <!-- Card Selezione Foglio Tracker -->
             <div
                 class="bg-white dark:bg-gray-800 rounded-3xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <span class="text-xs font-bold uppercase tracking-wider text-gray-400 w-full sm:w-auto">Foglio
@@ -669,12 +650,10 @@
                 </select>
             </div>
 
-            <!-- Hero Card Riepilogo Open-to-Spend -->
             <div id="tracker-hero-card"
                 class="bg-emerald-600 text-white rounded-3xl p-5 sm:p-6 shadow-md space-y-2 transition-colors">
                 <div class="text-[11px] sm:text-xs font-medium opacity-90 uppercase tracking-wider">Open-to-Spend
-                    (Residuo Totale)
-                </div>
+                    (Residuo Totale)</div>
                 <div class="text-2xl sm:text-3xl font-extrabold" id="tracker-hero-residuo">€0</div>
                 <div class="text-xs opacity-90 flex items-center justify-between pt-2 border-t border-white/20">
                     <span>Budget: <strong id="tracker-hero-budget">€0</strong></span>
@@ -682,14 +661,171 @@
                 </div>
             </div>
 
-            <!-- Lista Dettaglio Categorie & Voci (Budget vs Reale) -->
             <div
                 class="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-7 shadow-sm border border-gray-100 dark:border-gray-700 space-y-6">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Controllo per Voce di Spesa</h3>
-                <div class="space-y-6" id="tracker-categories-list">
-                    <!-- Popolato da JS -->
+                <div class="space-y-6" id="tracker-categories-list"></div>
+            </div>
+        </main>
+
+        <!-- ======================================================= -->
+        <!-- 4.4 SCHERMATA SALVADANAIO ATTIVO (PIGGY BANK)           -->
+        <!-- ======================================================= -->
+        <main id="view-piggy-bank" class="hidden space-y-5">
+            <div
+                class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="showView('piggy-list')"
+                    class="text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    Tutti i Salvadanai
+                </button>
+
+                <div class="text-xs font-bold text-gray-800 dark:text-gray-100">
+                    Il Mio Salvadanaio
+                </div>
+
+                <button type="button" onclick="toggleDarkMode()"
+                    class="p-1.5 text-gray-600 dark:text-amber-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer shrink-0"
+                    title="Cambia tema">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Card Principale Obiettivo Attivo con Sagoma Maialino SVG Vettoriale -->
+            <div id="piggy-active-card"
+                class="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 text-center space-y-6 relative overflow-hidden">
+
+                <canvas id="fireworks-canvas" class="absolute inset-0 pointer-events-none z-10 hidden"></canvas>
+
+                <div class="space-y-1">
+                    <span id="piggy-status-badge"
+                        class="inline-block px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                        Obiettivo in Corso
+                    </span>
+                    <h2 class="text-xl font-extrabold text-gray-800 dark:text-gray-100 pt-1" id="piggy-title">
+                        Caricamento...</h2>
+                    <div class="text-[11px] text-gray-400" id="piggy-dates-info"></div>
+                </div>
+
+                <!-- Maialino Salvadanaio SVG Vettoriale con Riempimento Perfetto dal Basso -->
+                <div class="relative w-44 h-36 mx-auto flex items-center justify-center overflow-hidden p-2">
+                    <svg class="w-full h-full drop-shadow-sm" viewBox="0 0 512 512" fill="none" stroke="#059669"
+                        stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+                        <defs>
+                            <clipPath id="pig-clip">
+                                <path
+                                    d="M440 220c-10-60-50-90-110-100-30-5-70 0-110 20-50 25-90 70-110 120-20 50-10 100 10 140 15 30 45 50 80 50h180c40 0 75-25 85-65 15-55 10-105-25-145z" />
+                            </clipPath>
+                        </defs>
+
+                        <!-- Sfondo bianco del corpo del maialino -->
+                        <path
+                            d="M440 220c-10-60-50-90-110-100-30-5-70 0-110 20-50 25-90 70-110 120-20 50-10 100 10 140 15 30 45 50 80 50h180c40 0 75-25 85-65 15-55 10-105-25-145z"
+                            fill="#ffffff" />
+
+                        <!-- LIVELLO VERDE CHE SALE DAL BASSO (usando il clipPath) -->
+                        <g clip-path="url(#pig-clip)">
+                            <rect id="piggy-water-rect" x="0" y="512" width="512" height="512" fill="#10b981"
+                                class="transition-all duration-700" />
+                        </g>
+
+                        <!-- Contorno e dettagli del maialino in primo piano -->
+                        <path d="M330 120c15-35 45-55 75-50 20 4 35 20 35 40 0 25-25 55-50 70" fill="#ffffff" />
+                        <path d="M330 120c15-35 45-55 75-50 20 4 35 20 35 40 0 25-25 55-50 70" stroke="#059669" />
+                        <path d="M210 135c-10-30-35-45-60-40-15 3-25 15-25 30 0 20 20 45 40 55" stroke="#059669" />
+                        <ellipse cx="415" cy="270" rx="35" ry="25" fill="#ffffff" />
+                        <ellipse cx="415" cy="270" rx="35" ry="25" stroke="#059669" />
+                        <circle cx="405" cy="270" r="4" fill="#059669" />
+                        <circle cx="425" cy="270" r="4" fill="#059669" />
+                        <circle cx="340" cy="210" r="8" fill="#059669" />
+                        <path d="M250 130h60a8 8 0 018 8v4a8 8 0 01-8 8h-60a8 8 0 01-8-8v-4a8 8 0 018-8z"
+                            fill="#059669" />
+                        <path d="M150 410v50c0 15 10 25 25 25s25-10 25-25v-35" stroke="#059669" />
+                        <path d="M210 420v35c0 15 10 25 25 25s25-10 25-25v-25" stroke="#059669" />
+                        <path d="M320 410v45c0 15 10 25 25 25s25-10 25-25v-35" stroke="#059669" />
+                        <path d="M380 420v35c0 15 10 25 25 25s25-10 25-25v-25" stroke="#059669" />
+                        <path d="M90 240c-15-15-25-5-20 10s15 15 5 25c-8 8-20 0-15-10" stroke="#059669" />
+                        <!-- Contorno principale maiale -->
+                        <path
+                            d="M440 220c-10-60-50-90-110-100-30-5-70 0-110 20-50 25-90 70-110 120-20 50-10 100 10 140 15 30 45 50 80 50h180c40 0 75-25 85-65 15-55 10-105-25-145z"
+                            stroke="#059669" fill="none" />
+                    </svg>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="text-3xl font-extrabold text-gray-900 dark:text-gray-100" id="piggy-current-amount">€0
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400" id="piggy-subtitle-info">
+                        Mancano <strong class="text-emerald-600 dark:text-emerald-400 font-bold"
+                            id="piggy-missing-amount">€0</strong> per raggiungere l'obiettivo di <strong
+                            id="piggy-target-amount">€0</strong>
+                    </p>
+                </div>
+
+                <div class="space-y-1 pt-1">
+                    <div class="flex justify-between text-xs font-semibold text-gray-500">
+                        <span>Progresso</span>
+                        <span id="piggy-pct-text">0%</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div id="piggy-progress-bar"
+                            class="h-full bg-emerald-500 transition-all duration-500 rounded-full" style="width: 0%;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-3 border-t border-gray-100 dark:border-gray-700 text-left">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400">Versamenti Mensili Automatici
+                    </h4>
+                    <!-- Contenitore con l'ID -->
+                    <div id="piggy-monthly-history" class="space-y-1.5 max-h-36 overflow-y-auto pr-1"></div>
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <button type="button" onclick="openEditPiggyModal()"
+                        class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer">
+                        Modifica Nome
+                    </button>
+                    <button type="button" onclick="deleteActivePiggyBank()"
+                        class="text-xs text-red-500 hover:bg-red-50 dark:hover:bg-gray-700 px-3 py-1.5 rounded-xl transition cursor-pointer">
+                        Elimina Obiettivo
+                    </button>
                 </div>
             </div>
+        </main>
+
+        <!-- ======================================================= -->
+        <!-- 4.5 SCHERMATA ELENCO TUTTI I SALVADANAI (STORICO)       -->
+        <!-- ======================================================= -->
+        <main id="view-piggy-list" class="hidden space-y-5">
+            <div
+                class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+                <button type="button" onclick="backToDashboard()"
+                    class="text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                        </path>
+                    </svg>
+                    I miei fogli
+                </button>
+
+                <div class="text-xs font-bold text-gray-800 dark:text-gray-100">
+                    Tutti i Salvadanai 🐷
+                </div>
+
+                <button type="button" onclick="openNewPiggyModal()"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-xl shadow-sm transition cursor-pointer">
+                    + Nuovo
+                </button>
+            </div>
+
+            <div class="space-y-3" id="piggy-all-items-container"></div>
         </main>
     </div>
 
@@ -707,7 +843,6 @@
             <div class="space-y-3">
                 <select id="select-calendar-sheet-id"
                     class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none min-h-[44px] cursor-pointer">
-                    <!-- Popolato da JS -->
                 </select>
             </div>
 
@@ -726,16 +861,13 @@
 
     <!-- MENU LATERALE (DRAWER) -->
     <div id="app-sidebar" class="fixed inset-0 z-50 pointer-events-none hidden">
-        <!-- Overlay scuro di sfondo -->
         <div id="sidebar-overlay" onclick="toggleSidebar()"
             class="absolute inset-0 bg-black/40 backdrop-blur-xs opacity-0 transition-opacity pointer-events-auto">
         </div>
 
-        <!-- Pannello scorrevole a sinistra -->
         <div id="sidebar-panel"
             class="absolute top-0 left-0 bottom-0 w-72 bg-white dark:bg-gray-800 shadow-2xl p-6 flex flex-col justify-between transform -translate-x-full transition-transform pointer-events-auto">
             <div class="space-y-6">
-                <!-- Header del Menu -->
                 <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
                     <div class="flex items-center gap-3">
                         <img src="logo.png" alt="Logo" class="h-8 object-contain">
@@ -750,7 +882,6 @@
                     </button>
                 </div>
 
-                <!-- Voci di Navigazione -->
                 <nav class="space-y-1">
                     <button onclick="toggleSidebar(); backToDashboard();"
                         class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-600 transition text-left cursor-pointer">
@@ -781,10 +912,19 @@
                         </svg>
                         <span>Tracker & Residui</span>
                     </button>
+
+                    <button onclick="openPiggyBankFromSidebar()"
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-emerald-50 dark:hover:bg-gray-700 hover:text-emerald-600 transition text-left cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        <span>Il Mio Salvadanaio</span>
+                    </button>
                 </nav>
             </div>
 
-            <!-- Footer del Menu con Cambio Profilo / Logout -->
             <div class="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-2">
                 <div class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold px-3">Account</div>
                 <button onclick="toggleSidebar(); logoutToAuth();"
@@ -907,8 +1047,7 @@
             <div>
                 <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Elimina Foglio</h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Sei sicura di voler eliminare questo foglio?
-                    L'azione è
-                    irreversibile.</p>
+                    L'azione è irreversibile.</p>
             </div>
             <div class="flex items-center justify-center gap-2 pt-1">
                 <button type="button" onclick="closeDeleteSheetModal()"
@@ -987,7 +1126,7 @@
                     Rendiconto?</h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
                     Confermando, il foglio passerà in sola lettura ("Visualizza") per congelare il bilancio finale.
-                    Potrai comunque riaprirlo in qualsiasi momento.
+                    Il foglio non potrà più essere riaperto o modificato.
                 </p>
             </div>
             <div class="flex items-center justify-center gap-2 pt-1">
@@ -1003,41 +1142,63 @@
         </div>
     </div>
 
-    <!-- MODALE CONFERMA SBLOCCO MODIFICHE FOGLIO -->
-    <div id="modal-confirm-unlock"
+    <!-- MODALE CREA NUOVO SALVADANAIO -->
+    <div id="modal-new-piggy"
         class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl">
-            <div
-                class="w-12 h-12 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z">
-                    </path>
-                </svg>
+        <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Nuovo Obiettivo Salvadanaio 🐷</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Imposta un nuovo traguardo di risparmio:</p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Titolo Obiettivo <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="modal-piggy-title" maxlength="30" placeholder="Es. Vacanza in Giappone..."
+                        class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">
+                        Cifra da raggiungere (€) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="modal-piggy-target" placeholder="Es. 1500" min="1" step="any"
+                        class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
             </div>
-            <div>
-                <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Riaprire le modifiche al foglio?
-                </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
-                    Il foglio tornerà modificabile e il rendiconto precedente verrà azzerato. Dovrai generare un nuovo
-                    rendiconto al termine delle modifiche.
-                </p>
-            </div>
-            <div class="flex items-center justify-center gap-2 pt-1">
-                <button type="button" onclick="closeUnlockSheetModal()"
-                    class="w-1/2 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition cursor-pointer">
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeNewPiggyModal()"
+                    class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer">
                     Annulla
                 </button>
-                <button type="button" onclick="executeUnlockSheet()"
-                    class="w-1/2 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl transition shadow-xs cursor-pointer">
-                    Riapri Modifiche
+                <button type="button" onclick="confirmCreatePiggyBank()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-sm cursor-pointer">
+                    Crea Salvadanaio
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Script applicazione con parametro cache-busting -->
-    <script src="app.js?v=3.8"></script>
+    <!-- MODALE MODIFICA NOME SALVADANAIO -->
+    <div id="modal-edit-piggy"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100">Modifica Nome Salvadanaio</h3>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Nuovo Titolo</label>
+                <input type="text" id="modal-edit-piggy-title" maxlength="30"
+                    class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeEditPiggyModal()"
+                    class="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer">Annulla</button>
+                <button type="button" onclick="confirmEditPiggyBank()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm cursor-pointer">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=12.0"></script>
 </body>
 
 </html>
